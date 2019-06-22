@@ -4,7 +4,7 @@
 <meta name="description" content="" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Hello Gridea | FunkyPants</title>
-<link rel="shortcut icon" href="https://funkypantssa.github.io//favicon.ico?v=1561221361336">
+<link rel="shortcut icon" href="https://funkypantssa.github.io//favicon.ico?v=1561222986874">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://funkypantssa.github.io//styles/main.css">
@@ -29,7 +29,7 @@
       <div class="main-content">
         <div class="site-header">
   <a href="https://funkypantssa.github.io/">
-  <img class="avatar" src="https://funkypantssa.github.io//images/avatar.png?v=1561221361336" alt="">
+  <img class="avatar" src="https://funkypantssa.github.io//images/avatar.png?v=1561222986874" alt="">
   </a>
   <h1 class="site-title">
     FunkyPants
@@ -128,6 +128,32 @@
 
         
 
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'd4ba93b7cbe240a39846',
+    clientSecret: '1c804365686ea31014203971d47b61aaa1012692',
+    repo: 'funkypantssa.github.io',
+    owner: 'FunkyPantsSa',
+    admin: ['FunkyPantsSa'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
         
 
         <div class="site-footer">
