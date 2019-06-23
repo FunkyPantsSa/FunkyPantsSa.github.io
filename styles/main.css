@@ -776,6 +776,10 @@ td {
 }
 
       .main {
+        max-width: 900px;
+      }
+    
+      .main {
         background: #f8f0fc;
       }
     
