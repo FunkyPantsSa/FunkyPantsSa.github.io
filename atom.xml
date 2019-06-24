@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2019-06-24T11:18:36.900Z</updated>
+    <updated>2019-06-24T11:19:30.260Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io//atom.xml"/>
@@ -21,9 +21,11 @@
         <content type="html"><![CDATA[<p>由于收手上还有一个空闲的ondrive开发者账号，送了5T的免费空间，放着不用可惜了，就试试拿来放视频图片，再通过外链引用一下。开此文章进行测试，万一成了就会方便很多啦。那么，，让我们开始吧！</p>
 <!-- more -->
 <hr>
-<h2 id="centervideo-idvideo-controls-preloadnone-posterhttpom2bks7xsbktclouddncom2017-08-26-markdown-advance-videojpgsource-idmp4-srchttpslinkgimhoycomsharepointahr0chm6ly9mcmvlc2hhzg93lw15lnnoyxjlcg9pbnquy29tlzp2oi9nl3blcnnvbmfsl3blyw42nl9hymnkyv90zwnol0vxdhbvlvjvqjhstnz0y1npy1ziunvzqnnns1nrsmdvbnetr0poz3jkzhlocmczt1ja25iqxump4-typevideomp4centervideo"><center><video id="video" controls="" preload="none" poster="http://om2bks7xs.bkt.clouddn.com/2017-08-26-Markdown-Advance-Video.jpg">
-<source id="mp4" src="https://link.gimhoy.com/sharepoint/aHR0cHM6Ly9mcmVlc2hhZG93LW15LnNoYXJlcG9pbnQuY29tLzp2Oi9nL3BlcnNvbmFsL3BlYW42Nl9hYmNkYV90ZWNoL0VXdHBVLVJvQjhsTnZ0Y1NpY1ZIUnVZQnNnS1NrSmdvbnEtR0pOZ3JkZHlocmc/ZT1Ja25IQXU=.mp4" type="video/mp4"></center>
-</video></h2>
+<center><video id="video" controls="" preload="none" poster="http://om2bks7xs.bkt.clouddn.com/2017-08-26-Markdown-Advance-Video.jpg">
+      <source id="mp4" src="https://link.gimhoy.com/sharepoint/aHR0cHM6Ly9mcmVlc2hhZG93LW15LnNoYXJlcG9pbnQuY29tLzp2Oi9nL3BlcnNvbmFsL3BlYW42Nl9hYmNkYV90ZWNoL0VXdHBVLVJvQjhsTnZ0Y1NpY1ZIUnVZQnNnS1NrSmdvbnEtR0pOZ3JkZHlocmc/ZT1Ja25IQXU=.mp4" type="video/mp4"></center>
+      </video>
+			HAHA
+<hr>
 <p><a href="https://link.gimhoy.com/sharepoint/aHR0cHM6Ly9mcmVlc2hhZG93LW15LnNoYXJlcG9pbnQuY29tLzp2Oi9nL3BlcnNvbmFsL3BlYW42Nl9hYmNkYV90ZWNoL0VXdHBVLVJvQjhsTnZ0Y1NpY1ZIUnVZQnNnS1NrSmdvbnEtR0pOZ3JkZHlocmc/ZT1Ja25IQXU=.mp4">点击查看视频~</a></p>
 ]]></content>
     </entry>
