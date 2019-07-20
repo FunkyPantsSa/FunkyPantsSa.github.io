@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2019-07-20T13:15:08.871Z</updated>
+    <updated>2019-07-20T13:17:46.454Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io//atom.xml"/>
@@ -272,7 +272,19 @@
 ]]></summary>
         <content type="html"><![CDATA[<p>由于收手上还有一个空闲的ondrive开发者账号，送了5T的免费空间，放着不用可惜了，就试试拿来放视频图片，再通过外链引用一下。开此文章进行测试，万一成了就会方便很多啦。那么，，让我们开始吧！</p>
 <!-- more -->
-<p><video src="https://qdcu02.baidupcs.com/file/7d8d6d63626a44a328376f8e86664313?bkt=en-c58a217c5b5bf7b24159cd781001e6314df53bc9c1026290ff96dc2d6300bcd8a28e3fc47fa5c678&fid=2605415076-260969-637838974575630&time=1561560392&sign=FDTAXyGERQBHSKfWa-DCb740ccc5511e5e8fedcff06b081203-pdhux3Sm0gMMOj79VRwIuESWsa0%3D&to=66&size=161949194&sta_dx=161949194&sta_cs=94159&sta_ft=mp4" width="100%" height="100%" controls="controls"></video></p>
+<p><OBJECT classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="600" height="338" id="polyvplayerb82b2b72c17596023ea9440cccab90c9_b"><PARAM NAME=movie VALUE="//player.polyv.net/videos/player.swf" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="Transparent" /><param name="flashvars" value="vid=b82b2b72c17596023ea9440cccab90c9_b" /><param name="allowFullScreen" value="true" /><EMBED src="//player.polyv.net/videos/player.swf" width="600" height="338"  TYPE="application/x-shockwave-flash" allowscriptaccess="always" wmode="Transparent" name="polyvplayerb82b2b72c17596023ea9440cccab90c9_b" allowFullScreen="true" flashvars="vid=b82b2b72c17596023ea9440cccab90c9_b"></EMBED></OBJECT></p>
+<script src='//player.polyv.net/script/player.js'></script>
+<div id='previewArea'></div>
+<script>
+var player = polyvPlayer({
+ 'wrap': '#previewArea',
+  'width':600,
+  'height':338,
+    'vid' : '4p52p2p42m14893026cl9770mmmlp90m9_p'
+ });
+ //加密视频需传真实vid的playsafe 
+ //参考文档：http://dev.polyv.net/?p=7377 
+</script>
 <script src='//player.polyv.net/script/polyvplayer.min.js'></script>
 <div id='plv_b82b2b72c17596023ea9440cccab90c9_b'></div>
 <script>
