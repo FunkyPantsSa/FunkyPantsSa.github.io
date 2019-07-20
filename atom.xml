@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2019-07-20T13:17:46.454Z</updated>
+    <updated>2019-07-20T13:18:24.569Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io//atom.xml"/>
@@ -295,6 +295,7 @@ var player = polyvObject('#plv_b82b2b72c17596023ea9440cccab90c9_b').videoPlayer(
  'forceH5':true 
 });
 </script>
+<iframe style='width: 600px;height: 338px' frameborder='no' allowfullscreen mozallowfullscreen webkitallowfullscreen src='http://share.polyv.net/front/video/preview?vid=b82b2b72c17596023ea9440cccab90c9_b'></iframe>
 ]]></content>
     </entry>
     <entry>
