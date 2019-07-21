@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2019-07-21T01:25:39.407Z</updated>
+    <updated>2019-07-21T01:26:53.677Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io//atom.xml"/>
@@ -16,8 +16,8 @@
         <link href="https://funkypantssa.github.io//post/test">
         </link>
         <updated>2019-07-21T01:23:00.000Z</updated>
-        <content type="html"><![CDATA[<p>视频测试<br>
-<video src="http://puyqy2n9u.bkt.clouddn.com/_-mpA8MeS34bk.mp4" width=600px height=338px controls="controls"></video></p>
+        <content type="html"><![CDATA[<p>视频测试<center><br>
+<video src="http://puyqy2n9u.bkt.clouddn.com/_-mpA8MeS34bk.mp4" width=600px height=338px controls="controls"></video></center></p>
 ]]></content>
     </entry>
     <entry>
