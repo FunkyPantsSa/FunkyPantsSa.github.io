@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2020-03-09T07:22:23.985Z</updated>
+    <updated>2020-03-09T07:30:37.325Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io/atom.xml"/>
@@ -16,9 +16,13 @@
         <link href="https://funkypantssa.github.io/post/robot/">
         </link>
         <updated>2020-03-09T07:05:24.000Z</updated>
-        <summary type="html"><![CDATA[<p>在家里闲的无聊，搭建啦QQ机器人：<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143043&amp;site=qq&amp;menu=yes">1583143043</a>   有兴趣的小伙伴可以把他邀请进群，希望他能够给大家带来欢乐。本QQ机器人基于酷Q Air打造，永久免费试用，只需要邀请进群就可以使用啦。会不定时更新新的功能，让机器人越来越完善。</p>
+        <summary type="html"><![CDATA[<p>在家里闲的无聊，搭建啦QQ机器人：<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143043&amp;site=qq&amp;menu=yes">1583143043</a>   有兴趣的小伙伴可以把他邀请进群，希望他能够给大家带来欢乐。本QQ机器人基于酷Q Air打造，永久免费试用，只需要邀请进群就可以使用啦。会不定时更新新的功能，让机器人越来越完善。<br>
+目前功能比较简单，会慢慢的完善其功能的。希望大家踊跃使用，为我发现更多的bug。<br>
+联系QQ<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143041&amp;site=qq&amp;menu=yes">1583143041</a></p>
 ]]></summary>
-        <content type="html"><![CDATA[<p>在家里闲的无聊，搭建啦QQ机器人：<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143043&amp;site=qq&amp;menu=yes">1583143043</a>   有兴趣的小伙伴可以把他邀请进群，希望他能够给大家带来欢乐。本QQ机器人基于酷Q Air打造，永久免费试用，只需要邀请进群就可以使用啦。会不定时更新新的功能，让机器人越来越完善。</p>
+        <content type="html"><![CDATA[<p>在家里闲的无聊，搭建啦QQ机器人：<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143043&amp;site=qq&amp;menu=yes">1583143043</a>   有兴趣的小伙伴可以把他邀请进群，希望他能够给大家带来欢乐。本QQ机器人基于酷Q Air打造，永久免费试用，只需要邀请进群就可以使用啦。会不定时更新新的功能，让机器人越来越完善。<br>
+目前功能比较简单，会慢慢的完善其功能的。希望大家踊跃使用，为我发现更多的bug。<br>
+联系QQ<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=1583143041&amp;site=qq&amp;menu=yes">1583143041</a></p>
 <!-- more -->
 <p>功能及指令列表：</p>
 <p><strong>1、简单的签到功能。仅仅提供简单的签到功能，把机器人邀请进群以后，在群里发送：“签到”即可。</strong></p>
