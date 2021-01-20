@@ -2,14 +2,171 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://funkypantssa.github.io/</id>
     <title>FunkyPants</title>
-    <updated>2020-03-09T07:36:54.722Z</updated>
+    <updated>2021-01-20T07:18:13.518Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://funkypantssa.github.io/"/>
     <link rel="self" href="https://funkypantssa.github.io/atom.xml"/>
     <subtitle>&lt;script type=&quot;text/javascript&quot; src=&quot;https://yijuzhan.com/api/word.php?m=js&quot;&gt;&lt;/script&gt;&lt;script&gt;yiju(true);&lt;/script&gt;</subtitle>
     <logo>https://funkypantssa.github.io/images/avatar.png</logo>
     <icon>https://funkypantssa.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2020, FunkyPants</rights>
+    <rights>All rights reserved 2021, FunkyPants</rights>
+    <entry>
+        <title type="html"><![CDATA[一些常用的命令]]></title>
+        <id>https://funkypantssa.github.io/post/yi-xie-chang-yong-de-ming-ling/</id>
+        <link href="https://funkypantssa.github.io/post/yi-xie-chang-yong-de-ming-ling/">
+        </link>
+        <updated>2021-01-20T07:15:40.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="常用的命令">常用的命令</h1>
+<h3 id="sql-相关">sql 相关</h3>
+<p>PosgreSQL 创建数据库、创建用户、并将数据库授权给指定用户。</p>
+<pre><code class="language-sql">create DATABASE database_name;
+CREATE USER uer_name WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE &quot;database_name&quot; to usr_name;
+
+</code></pre>
+<p>MySQL 创建数据库、创建用户、并将数据库授权给指定用户。</p>
+<pre><code class="language-sql">create DATABASE database_name;
+CREATE USER 'usr_name' IDENTIFIED BY 'passwd';
+GRANT ALL ON database_name.* TO 'usr_name'
+
+</code></pre>
+<h3 id="磁盘相关">磁盘相关</h3>
+<h5 id="1-lvm">1、lvm</h5>
+<p>​		LVM将一个或多个硬盘的分区在逻辑上集合，相当于一个大硬盘来使用，当硬盘的空间不够使用的时候，可以继续将其它的硬盘的分区加入其中，这样可以实现磁盘空间的动态管理，相对于普通的磁盘分区有很大的灵活性。</p>
+<figure data-type="image" tabindex="1"><img src="https://img2020.cnblogs.com/blog/949069/202004/949069-20200416104045527-1858978940.png" alt="img" loading="lazy"></figure>
+<p>​</p>
+<p>​		lvm常用的命令</p>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>PV管理命令</th>
+<th>VG管理命令</th>
+<th>LV管理命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scan 扫描</td>
+<td>pvscan</td>
+<td>vgscan</td>
+<td>lvscan</td>
+</tr>
+<tr>
+<td>create 创建</td>
+<td>pvcreate</td>
+<td>vgcreate</td>
+<td>lvcreate</td>
+</tr>
+<tr>
+<td>display 显示</td>
+<td>pvdisplay</td>
+<td>vgdisplay</td>
+<td>lvdisplay</td>
+</tr>
+<tr>
+<td>remove 移除</td>
+<td>pvremove</td>
+<td>vgremove</td>
+<td>lvremove</td>
+</tr>
+<tr>
+<td>extend 扩展</td>
+<td></td>
+<td>vgextend</td>
+<td>lvextend</td>
+</tr>
+<tr>
+<td>reduce 减少</td>
+<td></td>
+<td>vgreduce</td>
+<td>lvreduce</td>
+</tr>
+</tbody>
+</table>
+<p>注意：查看命令有scan、display和s（pvs、vgs、lvs）。s是简单查看对应卷信息，display是详细查看对应卷信息。而scan是扫描所有的相关的对应卷。</p>
+<p>1)、新加入的磁盘必须创建磁盘分区，使用<code>fdisk</code> 或者 <code>gdisk</code> 进行分区。</p>
+<p>使用命令 <code>fdisk - l</code> 查看磁盘情况。再使用 <code>fdisk /dev/sdb</code> 对新加入的磁盘进行分区。fdisk 以及对于 gdisk 的使用在这里不再赘述。</p>
+<p>2)、分区好以后，使用 <code>pvcreate</code>命令来创建pv</p>
+<pre><code class="language-shell">pvcreate /dev/sdb
+pvs #查看 PV 情况
+
+</code></pre>
+<p>​		PV 创建好以后使用vgcreate创建卷组VG，并且此处可以-s选项指定PE（LE）的大小，（默认PE大小4M）</p>
+<p><em>注意：PE大，读取速度快，但浪费空间。反之，读取速度慢，但节省空间。类似于socket</em></p>
+<pre><code class="language-shell">vgcreate vg1 /dev/sdb
+		
+vgcreate -s 16M vg2 /dev/sdb
+	
+vgs #查看 vg
+
+</code></pre>
+<p>VG 创建好以后创建LV  <code>lvcreate -n lvname -L lvsize(M，G)|-l LEnumber vgname</code></p>
+<pre><code class="language-shell">lvcreate -n lv1 -L 64M vg1
+		
+lvcreate -n lv2 -l 16 vg1
+		
+#lvcreate -n lvname -L lvsize(M，G)|-l LEnumber vgname
+		
+lvs
+</code></pre>
+<p>至此 lvm 创建成功，还需要格式化和挂载。</p>
+<p><em>注意：在格式化之前需要知道xfs文件系统只支持增大，不支持减小。ext2、ext3、ext4增大减小都支持。</em></p>
+<pre><code class="language-shell">mkfs.ext4 /dev/vg1/lv1　　#将lv1格式化成ext4
+mkdir /lv1
+mount /dev/vg1/lv1 /lv1　　#挂载到/lv1下
+echo &quot;/dev/vg1/lv1 /lv1 ext4 defaults 0 0&quot; &gt;&gt; /etc/fstab    #追加到开机挂载
+</code></pre>
+<p>​		这里的/dev/vg1/lv1实际是一个软链接，实际地址<code>ll /dev/vg1/lv1</code>查看。</p>
+<p>3)、逻辑卷LV扩容（动态扩容）</p>
+<p>​     	在不停机的情况下，为 Linux 添加一块硬盘，来对 LV 进行动态扩容。</p>
+<p>​		首先需要对总线进行扫描，使得系统获取到新添加的硬盘。</p>
+<pre><code class="language-shell">ls /sys/class/fc_host   #(会看到host1,host2...hostN,对每个host进行如下操作)
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/host1/scan  #(中间是有空格的)!!
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/host2/scan
+...
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/hostN/scan
+		
+</code></pre>
+<p>​		扫描总线之后再使用 <code>fdisk -l</code> 查看磁盘。之后使用 <code>fdisk</code> 或者 <code>gdisk</code> 分区。分区之后依然需要创建 PV。</p>
+<p>首先需要确认是否有可用的扩容空间，逻辑卷LV是从卷组VG中创建的，所有在逻辑卷LV扩容前需要查看卷组VG的空间使用情况。</p>
+<pre><code>vgs   #查看 vg 剩余空间
+</code></pre>
+<p>​		然后对VG 进行扩容，使用如下命令。</p>
+<pre><code class="language-shell">vgextend vg1 /dev/sdc  #sdc pv 添加到 vg1
+lvextend -L +100M /dev/vg1/lv1    #给 lv1添加 100M 空间
+lvextend -L 100M /dev/vg1/lv2    #直接使用100M是增加到100M
+lvs  #查看
+</code></pre>
+<p>​			<em>文件系统也需要扩容。ext4文件系统扩容使用&quot;<code>resize2fs</code> [逻辑卷名称]&quot;，xfs文件系统扩容使用&quot;<code>xfs_growfs</code> 挂载点&quot;</em></p>
+<pre><code class="language-shell">resize2fs /dev/vg1/lv1　　#ext4文件系统扩容 
+xfs_growfs /dev/mapper/vg_sql-lv_root   #xfs_growfs 需要添加挂载点。
+df -h  #查看
+</code></pre>
+<p>4)、逻辑卷LV缩小</p>
+<p>逻辑卷LV缩小命令lvreduce与扩容命令类似，缩减逻辑卷LV请谨慎操作。<code>lvreduce</code>命令使用<code>-L</code>选项减少空间，<code>-r</code>选项减少文件系统空间，实现动态调整（这是ext4文件系统）</p>
+<pre><code>lvreduce -L 100M -r /dev/vg1/lv1
+</code></pre>
+<p>​			<em>如果不使用-r选项，那么需要卸载挂载点再使用resize2fs调整，但这已经不是动态调整了。xfs文件系统不支持缩小。</em></p>
+<p>​			LV 的缩小不在赘述。</p>
+<p>5）、删除 LV</p>
+<p>​		删除LVM步骤：umount卸载--&gt;lvremove移除逻辑卷LV--&gt;vgremove移除卷组VG--&gt;pvremove移除物理卷PV</p>
+<pre><code class="language-shell">[root@xuexi dev]# umount /lv1　　//卸载挂载点
+[root@xuexi dev]# lvremove /dev/vg1/lv1　　//移除逻辑卷
+Do you really want to remove active logical volume vg1/lv1? [y/n]: y
+  Logical volume &quot;lv1&quot; successfully removed
+[root@xuexi dev]# lvs
+[root@xuexi dev]# vgremove vg1　　//移除卷组
+  Volume group &quot;vg1&quot; successfully removed
+[root@xuexi dev]# vgs
+  VG  #PV #LV #SN Attr   VSize VFree
+  vg2   1   0   0 wz--n- 1.98g 1.98g
+[root@xuexi dev]# pvremove /dev/sdb1　　//移除物理卷
+  Labels on physical volume &quot;/dev/sdb1&quot; successfully wiped.
+</code></pre>
+<p>更多可参考 「<a href="https://www.cnblogs.com/diantong/p/10554831.html">LVM管理</a>」：https://www.cnblogs.com/diantong/p/10554831.html</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[如何使用QQ机器人]]></title>
         <id>https://funkypantssa.github.io/post/robot/</id>
@@ -236,33 +393,6 @@
 <p>刚好遇见了在棉花地里面工作的一位维吾尔族姐姐，就住在农场里面，管理着很大一片地。据说只比我大一岁。穿着蓝白色的条纹衬衣，和一条黑色长裤配上黑色布鞋。身姿挺拔高挑，有种特有的优雅。黑色头巾包裹黑色的头发，是维吾尔族特有的五官，高高的鼻子。最让人难以忘记的还是大眼睛和长长的睫毛。只上过初中的她，可以用简单的汉语和我们交流，只不过有时候特别害羞，和我们一说话就会笑，笑起来很好看。名字叫阿米娜（音译）。</p>
 <p>没事的我，开始出去闲逛。一望无际的原野，所有的路都长的一样，不过也不怕走丢，因为一眼就可以看到你的目的地在哪儿。路上的地，除了车开过的车辙印，其他地方就像是面包一样松软，踩上去马上机会陷下去，有种让人飘飘然的感觉，有时候会走不稳，扭扭曲曲的走着，不过那种感觉特别让人上瘾。踩了第一脚，忍不住第二脚的继续踩下去。</p>
 <p>从地下几百米抽起来的地下水，冰凉冰凉的，就像冰水，和头顶的太阳完全是两个极端。看中了地边的那几个残留的西瓜和甜瓜，于是，我开始谋划了。</p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[遇见]]></title>
-        <id>https://funkypantssa.github.io/post/yu-jian/</id>
-        <link href="https://funkypantssa.github.io/post/yu-jian/">
-        </link>
-        <updated>2019-08-02T15:36:22.000Z</updated>
-        <summary type="html"><![CDATA[<p><em><strong>2019年7月27日</strong></em></p>
-<p>干燥的空气让在湿润气候下长大得我很是不适应，下车不久，就觉得鼻孔里湿湿的，鼻腔里面传来一股腥味，恍然大悟！流鼻血了！无可奈何。休息一夜以后，算是元气满满，但是我并没有出门的冲动，总觉得鼻腔里干干的让人很不舒服。我还是在家窝两天吧。</p>
-]]></summary>
-        <content type="html"><![CDATA[<p><em><strong>2019年7月27日</strong></em></p>
-<p>干燥的空气让在湿润气候下长大得我很是不适应，下车不久，就觉得鼻孔里湿湿的，鼻腔里面传来一股腥味，恍然大悟！流鼻血了！无可奈何。休息一夜以后，算是元气满满，但是我并没有出门的冲动，总觉得鼻腔里干干的让人很不舒服。我还是在家窝两天吧。</p>
-<!-- more -->
-<p>我在来之前我就想过，我来这里到底是为了什么。旅游？可能连景点都不会去，因为没人陪我。来打工？干活是肯定会干活的，但是只是没有工资罢了。那我就当个混饭的吧，美其名曰体验生活。就来这边体验一下和之前完全不一样的生活方式，长长见识，看看自己从来没有见过的风景，遇见以后可能再也没有机会遇见的人，如此，也算不虚此行了吧。可能这趟旅途没有存在的意义，没有那些美丽的景点，没有好吃的特产。但是我愿意在最平凡的生活中，感受这个地方的人和风情。</p>
-<p>我问起这边的具体情况的时候，他们却告诉我，一切都让我自己去感受感受好了。他们能够告诉我的，电视里早就告诉我了。于是我决定陪着兄长去到他工作的地方，去感受最真实的生活，其实原本是打算在随他去工作，赚取一些零花钱也算是一件美差，到了才发现好像并不现实，也就作罢，就当来混饭吧。</p>
-<p>吃过午饭，虽然两点才吃午饭，还是有些累，午睡起来已经是七点了。望向窗外，太阳还高高的挂着，还早。又继续休息了。</p>
-<p><em><strong>2019年7月29日</strong></em></p>
-<p>昨日的我，啥都没做，把混饭二字体现得淋漓尽致。就在睡觉吃饭和看电视之间度过。或许是旅途的劳累吧。最巧的是，我发现，这边的起居时间仿佛更加符合当代年轻人的生活方式。八九点起床也算早起，九十点吃早饭。晚上十点十一点躺上床算是早睡。一点两点睡着是常态。莫名的符合在学校的生活方式，让我暗自欢喜。</p>
-<p>今日打算去往兄长工作的地方，是修筑道路的技术员，负责测量。自然工作的地点便是在工地，没想到却是在一个维吾尔族的村庄旁边。一位山西的同事带着我去了集市上买了顶帽子，免得我被太阳晒黑。虽然我觉得帽子作用并不是太大，但还是带上了。</p>
-<p>工地就在一片树林旁边，那是由杨树和胡杨树长成的树林，旁边还有星星点点的红柳丛。树长得笔直，风一吹过哗哗啦啦的响。传说中的胡杨树千年不死，死了以后千年不倒，倒了以后千年不腐，我见到的似乎真的有这样的力量，满是风沙的地里挺拔的站着，树皮裂开，裂缝中全是沙子。红柳在没人耕种的地里长成一片海洋，顶端带着粉红的花，渐变的颜色，在沙地里倔强。</p>
-<p>车子从旁边经过，扬起尘土。朝着风吹去的方向飘过去。地上的沙土，像面粉一般，鞋子踏上去，扬起一小股尘土，鞋子提起来，把扬起的尘土带向远方。这也让我鞋子上全是沙子，很快就让沙土占领了表面。天气预报告诉我今日温度33，我抱着一个装满水的水杯，像是我的救命稻草一般，怕自己渴死在这人生地不熟的地方。万幸，我还是活下来了。</p>
-<p><em><strong>2019年7月31日</strong></em></p>
-<p>昨日，本想也出门，可是风在我起床吃早饭的时候就来了，吹得窗子外的树斜斜的。天空不一会变得灰黄起来，他们看了一眼窗外，速速的去把所有的窗户都紧紧关上了，淡淡的对我说了一句：刮沙子了，别出去了。我知道，沙尘暴来了。反正也没办法出去，还是玩游戏吧。浑浑噩噩，就这么过去了。</p>
-<p>今日天气晴好，于是便决定还是跟随兄长去看看。不过我起了个大早，我决定要从头开始看看本地人的一天是如何的。八点起床，匆忙洗漱后出门，开车到了一家早餐店，吃的东西倒是和全国各地的早餐都差不多：包子，豆浆，油条和稀饭，以及卤蛋，这些在全中国都普及的早餐物种。更看到一个大叔带着一个青椒进了店面里面，点了四个大包子，一碗稀饭，一口青椒一口包子的吃起来，让我很是诧异。</p>
-<p>上午过得很快，在树荫下坐着，不一会就到了中午。我们驱车前往城里，说是带我去吃吃新疆的拌面。这让我想起了食堂的拌面。到了店里，一人一份拌面，还有十多串的烤肉。不一会去，端上来了酸奶，还是维族人做的传统酸奶，这次加了些许糖倒也没觉得那么酸了。随后上来的是烤肉，肉串用比筷子还粗的红柳树枝穿上大块的羊肉烤制而成，滋滋冒油，散发羊肉和孜然的香味。大有大块吃肉大块喝酒的大快朵颐，可惜就是没有酒。不久，拌面也上来了，刚刚捞出过清水的面条放在大碗里，由羊肉、青红椒、木耳和西红柿等蔬菜制作的拌料放在小碗里，将小碗拌料倒进大碗面条里面。让面条吸收拌料的汤汁，大大的来上一口，滋味全满。</p>
-<p>吃完继续回到工作的地方，我变不知不觉在车上打盹睡过去了。一阵燥热让熟睡的我不得不醒来，天气真的让我没办法在车里待下去。午后是最热的时候，但是这种热并不是家乡的闷热和湿热，而是一种干干的热，只要有风一吹，就会觉得很凉快，或者是在阴凉之下同样会觉得很凉快。但是太阳底下还是狠毒的，挥汗如雨。即便如此，我还是很喜欢这样的气候，虽然很热，比家乡好过一些。</p>
 ]]></content>
     </entry>
 </feed>
