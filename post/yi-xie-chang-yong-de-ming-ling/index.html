@@ -1,0 +1,271 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>一些常用的命令 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              一些常用的命令
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2021-01-20 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>包含sql和lvm等</p>
+<!-- more -->
+<h1 id="常用的命令">常用的命令</h1>
+<h3 id="sql-相关">sql 相关</h3>
+<p>PosgreSQL 创建数据库、创建用户、并将数据库授权给指定用户。</p>
+<pre><code class="language-sql">create DATABASE database_name;
+CREATE USER uer_name WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE &quot;database_name&quot; to usr_name;
+
+</code></pre>
+<p>MySQL 创建数据库、创建用户、并将数据库授权给指定用户。</p>
+<pre><code class="language-sql">create DATABASE database_name;
+CREATE USER 'usr_name' IDENTIFIED BY 'passwd';
+GRANT ALL ON database_name.* TO 'usr_name'
+
+</code></pre>
+<h3 id="磁盘相关">磁盘相关</h3>
+<h5 id="1-lvm">1、lvm</h5>
+<p>​		LVM将一个或多个硬盘的分区在逻辑上集合，相当于一个大硬盘来使用，当硬盘的空间不够使用的时候，可以继续将其它的硬盘的分区加入其中，这样可以实现磁盘空间的动态管理，相对于普通的磁盘分区有很大的灵活性。</p>
+<figure data-type="image" tabindex="1"><img src="https://img2020.cnblogs.com/blog/949069/202004/949069-20200416104045527-1858978940.png" alt="img" loading="lazy"></figure>
+<p>​</p>
+<p>​		lvm常用的命令</p>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>PV管理命令</th>
+<th>VG管理命令</th>
+<th>LV管理命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scan 扫描</td>
+<td>pvscan</td>
+<td>vgscan</td>
+<td>lvscan</td>
+</tr>
+<tr>
+<td>create 创建</td>
+<td>pvcreate</td>
+<td>vgcreate</td>
+<td>lvcreate</td>
+</tr>
+<tr>
+<td>display 显示</td>
+<td>pvdisplay</td>
+<td>vgdisplay</td>
+<td>lvdisplay</td>
+</tr>
+<tr>
+<td>remove 移除</td>
+<td>pvremove</td>
+<td>vgremove</td>
+<td>lvremove</td>
+</tr>
+<tr>
+<td>extend 扩展</td>
+<td></td>
+<td>vgextend</td>
+<td>lvextend</td>
+</tr>
+<tr>
+<td>reduce 减少</td>
+<td></td>
+<td>vgreduce</td>
+<td>lvreduce</td>
+</tr>
+</tbody>
+</table>
+<p>注意：查看命令有scan、display和s（pvs、vgs、lvs）。s是简单查看对应卷信息，display是详细查看对应卷信息。而scan是扫描所有的相关的对应卷。</p>
+<p>1)、新加入的磁盘必须创建磁盘分区，使用<code>fdisk</code> 或者 <code>gdisk</code> 进行分区。</p>
+<p>使用命令 <code>fdisk - l</code> 查看磁盘情况。再使用 <code>fdisk /dev/sdb</code> 对新加入的磁盘进行分区。fdisk 以及对于 gdisk 的使用在这里不再赘述。</p>
+<p>2)、分区好以后，使用 <code>pvcreate</code>命令来创建pv</p>
+<pre><code class="language-shell">pvcreate /dev/sdb
+pvs #查看 PV 情况
+
+</code></pre>
+<p>​		PV 创建好以后使用vgcreate创建卷组VG，并且此处可以-s选项指定PE（LE）的大小，（默认PE大小4M）</p>
+<p><em>注意：PE大，读取速度快，但浪费空间。反之，读取速度慢，但节省空间。类似于socket</em></p>
+<pre><code class="language-shell">vgcreate vg1 /dev/sdb
+		
+vgcreate -s 16M vg2 /dev/sdb
+	
+vgs #查看 vg
+
+</code></pre>
+<p>VG 创建好以后创建LV  <code>lvcreate -n lvname -L lvsize(M，G)|-l LEnumber vgname</code></p>
+<pre><code class="language-shell">lvcreate -n lv1 -L 64M vg1
+		
+lvcreate -n lv2 -l 16 vg1
+		
+#lvcreate -n lvname -L lvsize(M，G)|-l LEnumber vgname
+		
+lvs
+</code></pre>
+<p>至此 lvm 创建成功，还需要格式化和挂载。</p>
+<p><em>注意：在格式化之前需要知道xfs文件系统只支持增大，不支持减小。ext2、ext3、ext4增大减小都支持。</em></p>
+<pre><code class="language-shell">mkfs.ext4 /dev/vg1/lv1　　#将lv1格式化成ext4
+mkdir /lv1
+mount /dev/vg1/lv1 /lv1　　#挂载到/lv1下
+echo &quot;/dev/vg1/lv1 /lv1 ext4 defaults 0 0&quot; &gt;&gt; /etc/fstab    #追加到开机挂载
+</code></pre>
+<p>​		这里的/dev/vg1/lv1实际是一个软链接，实际地址<code>ll /dev/vg1/lv1</code>查看。</p>
+<p>3)、逻辑卷LV扩容（动态扩容）</p>
+<p>​     	在不停机的情况下，为 Linux 添加一块硬盘，来对 LV 进行动态扩容。</p>
+<p>​		首先需要对总线进行扫描，使得系统获取到新添加的硬盘。</p>
+<pre><code class="language-shell">ls /sys/class/fc_host   #(会看到host1,host2...hostN,对每个host进行如下操作)
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/host1/scan  #(中间是有空格的)!!
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/host2/scan
+...
+echo &quot;- - -&quot; &gt; /sys/class/scsi_host/hostN/scan
+		
+</code></pre>
+<p>​		扫描总线之后再使用 <code>fdisk -l</code> 查看磁盘。之后使用 <code>fdisk</code> 或者 <code>gdisk</code> 分区。分区之后依然需要创建 PV。</p>
+<p>首先需要确认是否有可用的扩容空间，逻辑卷LV是从卷组VG中创建的，所有在逻辑卷LV扩容前需要查看卷组VG的空间使用情况。</p>
+<pre><code>vgs   #查看 vg 剩余空间
+</code></pre>
+<p>​		然后对VG 进行扩容，使用如下命令。</p>
+<pre><code class="language-shell">vgextend vg1 /dev/sdc  #sdc pv 添加到 vg1
+lvextend -L +100M /dev/vg1/lv1    #给 lv1添加 100M 空间
+lvextend -L 100M /dev/vg1/lv2    #直接使用100M是增加到100M
+lvs  #查看
+</code></pre>
+<p>​			<em>文件系统也需要扩容。ext4文件系统扩容使用&quot;<code>resize2fs</code> [逻辑卷名称]&quot;，xfs文件系统扩容使用&quot;<code>xfs_growfs</code> 挂载点&quot;</em></p>
+<pre><code class="language-shell">resize2fs /dev/vg1/lv1　　#ext4文件系统扩容 
+xfs_growfs /dev/mapper/vg_sql-lv_root   #xfs_growfs 需要添加挂载点。
+df -h  #查看
+</code></pre>
+<p>4)、逻辑卷LV缩小</p>
+<p>逻辑卷LV缩小命令lvreduce与扩容命令类似，缩减逻辑卷LV请谨慎操作。<code>lvreduce</code>命令使用<code>-L</code>选项减少空间，<code>-r</code>选项减少文件系统空间，实现动态调整（这是ext4文件系统）</p>
+<pre><code>lvreduce -L 100M -r /dev/vg1/lv1
+</code></pre>
+<p>​			<em>如果不使用-r选项，那么需要卸载挂载点再使用resize2fs调整，但这已经不是动态调整了。xfs文件系统不支持缩小。</em></p>
+<p>​			LV 的缩小不在赘述。</p>
+<p>5）、删除 LV</p>
+<p>​		删除LVM步骤：umount卸载--&gt;lvremove移除逻辑卷LV--&gt;vgremove移除卷组VG--&gt;pvremove移除物理卷PV</p>
+<pre><code class="language-shell">[root@xuexi dev]# umount /lv1　　//卸载挂载点
+[root@xuexi dev]# lvremove /dev/vg1/lv1　　//移除逻辑卷
+Do you really want to remove active logical volume vg1/lv1? [y/n]: y
+  Logical volume &quot;lv1&quot; successfully removed
+[root@xuexi dev]# lvs
+[root@xuexi dev]# vgremove vg1　　//移除卷组
+  Volume group &quot;vg1&quot; successfully removed
+[root@xuexi dev]# vgs
+  VG  #PV #LV #SN Attr   VSize VFree
+  vg2   1   0   0 wz--n- 1.98g 1.98g
+[root@xuexi dev]# pvremove /dev/sdb1　　//移除物理卷
+  Labels on physical volume &quot;/dev/sdb1&quot; successfully wiped.
+</code></pre>
+<p>更多可参考 「<a href="https://www.cnblogs.com/diantong/p/10554831.html">LVM管理</a>」：https://www.cnblogs.com/diantong/p/10554831.html</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/wintersongs/">
+              <h3 class="post-title">
+                冬天应该听的歌
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

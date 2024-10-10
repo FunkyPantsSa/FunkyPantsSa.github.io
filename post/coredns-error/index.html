@@ -1,0 +1,362 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>记一次coredns解析故障 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              记一次coredns解析故障
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-10-09 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <h2 id="现象coredns链接apiserver失败">现象：coredns链接apiserver失败：</h2>
+<pre><code class="language-shell">[INFO] plugin/ready: Still waiting on: &quot;kubernetes&quot;
+[INFO] plugin/ready: Still waiting on: &quot;kubernetes&quot;
+[WARNING] plugin/kubernetes: Kubernetes API connection failure: Get &quot;https://10.68.0.1:443/version&quot;: dial tcp 10.68.0.1:443: i/o timeout
+
+</code></pre>
+<h2 id="排查过程">排查过程</h2>
+<p>查看k8s的apiserver的状态：<br>
+kubectl   get svc</p>
+<pre><code>NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.68.0.1    &lt;none&gt;        443/TCP   172m
+
+</code></pre>
+<p>在宿主机上去去访问apiserver的地址：</p>
+<pre><code>root@industai-sxyq:/opt#curl  10.68.0.1:443
+404 page not found
+
+root@industai-sxyq:/opt#ping  10.68.0.1
+PING 10.68.0.1 (10.68.0.1) 56(84) bytes of data.
+64 bytes from 10.68.0.1: icmp_seq=1 ttl=64 time=0.107 ms
+64 bytes from 10.68.0.1: icmp_seq=2 ttl=64 time=0.085 ms
+</code></pre>
+<p>怀疑是iptables转发的问题，查看iptables，但是机器上并没有iptables命令，这就很奇怪。</p>
+<pre><code>(base) root@industai-sxyq:/opt# ipt
+iptables-apply    iptables-restore  iptables-save     iptables-xml   
+(base) root@industai-sxyq:/opt# ipt
+</code></pre>
+<p>使用apt 安装iptables。限制iptables已安装。只能使用<code>apt-get install --reinstall iptables  </code> 重新安装iptabels。</p>
+<pre><code>(base) root@industai-sxyq:/opt# apt install iptables
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+iptables is already the newest version (1.6.1-2ubuntu2.1).
+The following packages were automatically installed and are no longer required:
+  ieee-data python-certifi python-chardet python-jmespath python-kerberos python-libcloud python-lockfile python-netaddr python-openssl python-requests
+  python-selinux python-simplejson python-urllib3 python-xmltodict
+Use 'apt autoremove' to remove them.
+0 upgraded, 0 newly installed, 0 to remove and 10 not upgraded.
+</code></pre>
+<p>重新安装iptables之后，iptables命令重新出现了。看来问题就在这里。于是清除了iptables规则<code>iptables -F</code><br>
+清楚之后，重启了k3s。重启之后，k3s重建了iptables规则。而且coredns可以正常启动啦。</p>
+<h2 id="新的问题">新的问题</h2>
+<p>本以为问题就这样解决了，发现其他的pod根本不能访问coredns进行dns解析。<br>
+检查了flaanel的运行状态，发现flannel和cni0网卡都在。</p>
+<p>通过tcp抓cni0网卡的包发现：</p>
+<pre><code>11:44:20.643974 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275158535 ecr 0,nop,wscale 7], length 0
+11:44:21.665944 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275159557 ecr 0,nop,wscale 7], length 0
+11:44:23.681946 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275161573 ecr 0,nop,wscale 7], length 0
+11:44:25.825941 ARP, Request who-has industai-sxyq tell 10.58.0.172, length 28
+11:44:27.873945 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275165765 ecr 0,nop,wscale 7], length 0
+11:44:36.065944 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275173957 ecr 0,nop,wscale 7], length 0
+11:44:52.193949 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275190085 ecr 0,nop,wscale 7], length 0
+11:44:57.313946 ARP, Request who-has industai-sxyq tell 10.58.0.172, length 28
+</code></pre>
+<p>查看k3s得网络模式，是使用的ipvs，</p>
+<pre><code>ExecStart=/usr/local/bin/k3s \
+    server \
+	'--disable=traefik' \
+	'--disable=coredns' \
+	'--data-dir=/data/rancher/k3s' \
+	'--service-cidr=10.68.0.0/16' \
+	'--cluster-cidr=10.58.0.0/16' \
+	'--cluster-dns=10.68.0.2' \
+	'--cluster-domain=cluster.local.' \
+	'--flannel-backend=vxlan' \
+	'--kubelet-arg=topology-manager-policy=single-numa-node' \
+	'--kubelet-arg=cpu-manager-policy=static' \
+	'--kubelet-arg=kube-reserved=cpu=1' \
+	'--kube-apiserver-arg=service-node-port-range=20000-40000' \
+	'--kube-apiserver-arg=authorization-mode=Node,RBAC' \
+	'--kube-apiserver-arg=allow-privileged=true' \
+	'--kube-proxy-arg=proxy-mode=ipvs' \
+	'--kube-proxy-arg=masquerade-all=true' \
+	'--kube-proxy-arg=metrics-bind-address=0.0.0.0' \
+	 '--kube-scheduler-arg=config=/etc/rancher/k3s/scheduler-policy-config.yaml'
+     ```
+
+
+在网上排查找了个帖子`https://ask.kubesphere.io/forum/d/4699-k8s-pod-ping-kubesphere-devops/52`，感觉和我的抓包结果很像，发出去了包但是没有回应。
+怀疑是自己系统的ipv4转发有什么问题，于是重新配置了`/etc/sysctl.conf`
+重新apply之后，发现还是一样。无法访问coredns。
+     ```
+     vm.swappiness=0
+net.core.rmem_default=256960
+net.core.rmem_max=16777216
+net.core.wmem_default=256960
+net.core.wmem_max=16777216
+net.core.netdev_max_backlog=2000
+net.core.somaxconn=65535
+net.core.optmem_max=81920
+net.ipv4.tcp_mem=8388608  12582912  16777216
+net.ipv4.tcp_rmem=8192  87380  16777216
+net.ipv4.tcp_wmem=8192  65536  16777216
+net.ipv4.tcp_keepalive_time=180
+net.ipv4.tcp_keepalive_intvl=30
+net.ipv4.tcp_keepalive_probes=3
+net.ipv4.tcp_sack=1
+net.ipv4.tcp_fack=1
+net.ipv4.tcp_window_scaling=1
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_tw_reuse=1
+net.ipv4.tcp_tw_recycle=0
+net.ipv4.tcp_fin_timeout=10
+net.ipv4.tcp_max_syn_backlog=100000
+fs.file-max=1100000
+fs.nr_open=1100000
+fs.inotify.max_user_watches=524288
+kernel.pid_max=655350
+</code></pre>
+<p>后来还发现一个奇怪的现象，其实pod里面不能访问的只有coredns的10.68.0.2这个ip、pod的ip以及外部的ip，其他k8s的service都可以访问。这就很奇怪了。<br>
+其中还做过的操作包括但不限于：重建路由规则，清除iptables，把k3s的运行模式从ipvs改到iptables，升级k3s从1.23升级到1.25，均无法解决。<br>
+但是基本能确定，问题就是出在ipvs和iptables上。无奈，知识不够，无法分析到具体原因。</p>
+<h2 id="故障解决">故障解决</h2>
+<p>于是，清理了已经部署的k3s，然后重启了机器，重新安装k3s 1.25版本，重启之后进行安装，ansible脚本对系统配置进行了以下修改：</p>
+<pre><code>- name: Disable daily security update
+  remote_user: root
+  become: yes
+  shell: &quot;{{ item }}&quot;
+  with_items:
+    - &quot;systemctl kill --kill-who=all apt-daily.service&quot;
+    - &quot;systemctl stop apt-daily.timer&quot;
+    - &quot;systemctl stop apt-daily-upgrade.timer&quot;
+    - &quot;systemctl stop apt-daily.service&quot;
+    - &quot;systemctl stop apt-daily-upgrade.service&quot;
+    - &quot;systemctl disable apt-daily.timer&quot;
+    - &quot;systemctl disable apt-daily-upgrade.timer&quot;
+    - &quot;systemctl disable apt-daily.service&quot;
+    - &quot;systemctl disable apt-daily-upgrade.service&quot;
+  when: ansible_os_family == &quot;Debian&quot;
+  ignore_errors: True
+  tags: init_env
+
+#- name: create user
+#  user: name={{ item }} shell=/bin/bash createhome=yes
+#  with_items:
+#    - &quot;{{ username }}&quot;
+#    - &quot;readonly&quot;
+#  tags: create_user
+
+
+- name: Set limits
+  pam_limits:
+      dest: &quot;{{ item.dest }}&quot;
+      domain: '*'
+      limit_type: &quot;{{ item.limit_type }}&quot;
+      limit_item: &quot;{{ item.limit_item }}&quot;
+      value: &quot;{{ item.value }}&quot;
+  with_items:
+      - { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'nofile', value: '655350' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'nofile', value: '655350'}
+      #- { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'nproc', value: '102400' }
+      #- { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'nproc', value: '102400' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'sigpending', value: '255377' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'sigpending', value: '255377' }
+      - { dest: '/etc/security/limits.d/90-nproc.conf', limit_type: 'soft',limit_item: 'nproc', value: '262144' }
+      - { dest: '/etc/security/limits.d/90-nproc.conf', limit_type: 'hard',limit_item: 'nproc', value: '262144' }
+  tags: init_env
+
+- sysctl:
+    name: &quot;{{ item.name }}&quot;
+    value: &quot;{{ item.value}}&quot;
+    state: present
+    reload: yes
+  with_items:
+    - { name: 'vm.swappiness', value: '0'}
+    - { name: 'net.core.rmem_default ',value: '256960'}
+    - { name: 'net.core.rmem_max',value: '16777216'}
+    - { name: 'net.core.wmem_default',value: '256960'}
+    - { name: 'net.core.wmem_max ',value: '16777216'}
+    - { name: 'net.core.netdev_max_backlog ',value: '2000'}
+    - { name: 'net.core.somaxconn',value: '65535'}
+    - { name: 'net.core.optmem_max',value: '81920'}
+    - { name: 'net.ipv4.tcp_mem',value: '8388608  12582912  16777216'}
+    - { name: 'net.ipv4.tcp_rmem',value: '8192  87380  16777216'}
+    - { name: 'net.ipv4.tcp_wmem',value: '8192  65536  16777216'}
+    - { name: 'net.ipv4.tcp_keepalive_time',value: '180'}
+    - { name: 'net.ipv4.tcp_keepalive_intvl',value: '30'}
+    - { name: 'net.ipv4.tcp_keepalive_probes',value: '3'}
+    - { name: 'net.ipv4.tcp_sack',value: '1'}
+    - { name: 'net.ipv4.tcp_fack',value: '1'}
+    - { name: 'net.ipv4.tcp_window_scaling',value: '1'}
+    - { name: 'net.ipv4.tcp_syncookies',value: '1'}
+    - { name: 'net.ipv4.tcp_tw_reuse',value: '1'}
+    - { name: 'net.ipv4.tcp_tw_recycle',value: '0'}
+    - { name: 'net.ipv4.tcp_fin_timeout',value: '10'}
+    #- { name: 'net.ipv4.ip_local_port_range',value: '1024  65000'}
+    - { name: 'net.ipv4.tcp_max_syn_backlog',value: '100000'}
+    - { name: 'fs.file-max',value: '1100000'}
+    - { name: 'fs.nr_open',value: '1100000'}
+    - { name: 'fs.inotify.max_user_watches', value: '524288' }
+    - { name: 'kernel.pid_max', value: '655350' }
+  ignore_errors: True
+  tags: init_env
+</code></pre>
+<p>安装成功后，发现coredns依旧无法启动，但是查看内核日志：</p>
+<pre><code>11月 08 10:07:06 industai-sxyq k3s[1867]: E1108 10:07:06.376295    1867 proxier.go:1562] &quot;Failed to execute iptables-restore&quot; err=&lt;
+11月 08 10:07:06 industai-sxyq k3s[1867]:         exit status 1: iptables-restore: invalid option -- 'w'
+11月 08 10:07:06 industai-sxyq k3s[1867]:         iptables-restore: invalid option -- 'W'
+11月 08 10:07:06 industai-sxyq k3s[1867]:         Unknown arguments found on commandline
+11月 08 10:07:06 industai-sxyq k3s[1867]:  &gt; rules=&lt;
+11月 08 10:07:06 industai-sxyq k3s[1867]:         *nat
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-SERVICES - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-POSTROUTING - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-NODE-PORT - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-LOAD-BALANCER - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-MARK-MASQ - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m comment --comment &quot;Kubernetes endpoints dst ip:port, source ip for solving hairpin purpose&quot; -m set --match-se
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-NODE-PORT -p tcp -m comment --comment &quot;Kubernetes nodeport TCP port for masquerade purpose&quot; -m set --match-set KUBE-NODE-POR
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m comment --comment &quot;Kubernetes service cluster ip + port for masquerade purpose&quot; -m set --match-set KUBE-CLUSTER-
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m addrtype --dst-type LOCAL -j KUBE-NODE-PORT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-LOAD-BALANCER -j KUBE-MARK-MASQ
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m set --match-set KUBE-CLUSTER-IP dst,dst -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m mark ! --mark 0x00004000/0x00004000 -j RETURN
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -j MARK --xor-mark 0x00004000
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m comment --comment &quot;kubernetes service traffic requiring SNAT&quot; -j MASQUERADE --random-fully
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-MARK-MASQ -j MARK --or-mark 0x00004000
+11月 08 10:07:06 industai-sxyq k3s[1867]:         COMMIT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         *filter
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-FORWARD - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-NODE-PORT - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-PROXY-FIREWALL - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-SOURCE-RANGES-FIREWALL - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SOURCE-RANGES-FIREWALL -j DROP
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-FORWARD -m comment --comment &quot;kubernetes forwarding rules&quot; -m mark --mark 0x00004000/0x00004000 -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-FORWARD -m comment --comment &quot;kubernetes forwarding conntrack rule&quot; -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-NODE-PORT -m comment --comment &quot;Kubernetes health check node port&quot; -m set --match-set KUBE-HEALTH-CHECK-NODE-PORT dst -j ACC
+11月 08 10:07:06 industai-sxyq k3s[1867]:         COMMIT
+11月 08 10:07:06 industai-sxyq k3s[1867]:  &gt;
+</code></pre>
+<p>iptables-restore没有-w这个选项，但是我用的模式是ipvs啊。同时iptables命令又没了。<br>
+查看内核日志：</p>
+<pre><code>kernel: [569918.603973] IPVS: rr: UDP 10.68.0.2:53 - no destination available
+</code></pre>
+<p>结合上一条没有，应该是iptables的问题。<code>apt-get install --reinstall iptables  </code> 重新安装iptables，再重启k3s，再次查看，coredns正常启动，再进pod尝试dns解析，发现pod内解析正常，也能正常访问pod的ip。查看k3s日志和内核日志，均无报错。<br>
+开发反馈服务正常了。</p>
+<h2 id="问题">问题</h2>
+<p>虽然问题就这么解决了，但是我有点想不通。自己还是太菜了。</p>
+<ul>
+<li>1、为啥这个系统重启后iptables会消失？</li>
+<li>2、是什么导致的无法访问coredns的services和pod？</li>
+<li>3、为啥ipvs模式会使用iptables的命令？ipvs和iptables有什么区别？</li>
+</ul>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/k8s-deploy-etcd/">
+              <h3 class="post-title">
+                k8s deploy etcd
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

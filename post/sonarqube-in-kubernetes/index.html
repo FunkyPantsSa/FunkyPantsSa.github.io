@@ -1,0 +1,370 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SonarQube in kubernetes | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              SonarQube in kubernetes
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-04-07 ·
+              </time>
+              
+                <a href="https://blog.volin.top/tag/xuDNIyPkCO/" class="post-tag">
+                  # 文
+                </a>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>SonarQube是一个开源的代码质量管理系统，可用来快速定位代码中的Bug、漏洞以及不优雅的代码。它支持几乎所有的常见编程语言，例如Java、JavaScript、TypeScript、Kotlin、Ruby、Go, Scala等。并且还有插件机制，利用插件，可以让SonarQube更加强大，例如可以整合Findbugs、PMD、Checkstyle等。可以说，SonarQube是一款提升项目代码质量必备的根据。</p>
+<!-- more -->
+<h4 id="系统需求">系统需求：</h4>
+<ul>
+<li>
+<p>k8s:1.13.5以上版本</p>
+</li>
+<li>
+<p>pgsql 10及以上</p>
+</li>
+</ul>
+<h4 id="docker-compose">docker-compose</h4>
+<p>官方提供了docker-compose的文件，把data、log、extensions目录挂载到了本机目录，以便管理文件以及查看日志。</p>
+<pre><code>#docker-compose.yml
+version: &quot;3&quot;
+
+services:
+  sonarqube:
+    image: sonarqube:lts-community #8.9.2
+    depends_on:
+      - db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://pgsql/sonarqube?currentSchema=my_schema
+      SONAR_JDBC_USERNAME: postgres
+      SONAR_JDBC_PASSWORD: passwd
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      #将data、log、extensions目录挂载到本机目录
+    ports:
+      - &quot;9000:9000&quot;
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+</code></pre>
+<h5 id="kubernetes-yaml">kubernetes-yaml</h5>
+<p>通过kompose将转换为k8s的yaml文件,需要创建三个pv以及pvc，用于挂载文件。</p>
+<pre><code>#sonarqube-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: sonarqube
+  name: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: sonarqube
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: sonarqube
+    spec:
+      containers:
+        - env:
+            - name: SONAR_JDBC_PASSWORD
+              value: passwd
+            - name: SONAR_JDBC_URL
+              value: jdbc:postgresql://pgsql/sonarqube?currentSchema=public
+            - name: SONAR_JDBC_USERNAME
+              value: postgres
+          image: sonarqube:lts-community
+          name: sonarqube
+          ports:
+            - containerPort: 9000
+          resources: {}
+          volumeMounts:
+          	#将data、log、extensions目录挂载到机器目录
+            - mountPath: /opt/sonarqube/data
+              name: sonarqube-data
+            - mountPath: /opt/sonarqube/extensions
+              name: sonarqube-extensions
+            - mountPath: /opt/sonarqube/logs
+              name: sonarqube-logs
+      restartPolicy: Always
+      volumes:
+        - name: sonarqube-data
+          persistentVolumeClaim:
+            claimName: sonarqube-data
+        - name: sonarqube-extensions
+          persistentVolumeClaim:
+            claimName: sonarqube-extensions
+        - name: sonarqube-logs
+          persistentVolumeClaim:
+            claimName: sonarqube-logs
+status: {}
+
+</code></pre>
+<pre><code>#sonarqube-service.yaml
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: sonarqube
+  name: sonarqube
+spec:
+  ports:
+    - name: &quot;9000&quot;
+      port: 9000
+      targetPort: 9000
+  selector:
+    io.kompose.service: sonarqube
+status:
+  loadBalancer: {}
+
+
+</code></pre>
+<pre><code># sonarqube-extensions-persistentvolumeclaim.yaml
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sonarqube-extensions
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: sonarqube-extensions
+  nfs:
+    path: /nfs/sonarqube-extensions
+    server: nfs-server-ip
+    # nfs路径
+
+
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sonarqube-extensions
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: sonarqube-extensions
+</code></pre>
+<pre><code># sonarqube-logs-persistentvolumeclaim.yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sonarqube-logs
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: sonarqube-logs
+  nfs:
+    path: /nfs/sonarqube-logs
+    server: nfs-server-ip
+    # nfs路径
+
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sonarqube-logs
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: sonarqube-logs
+
+
+</code></pre>
+<pre><code># sonarqube-data-persistentvolumeclaim.yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sonarqube-data
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: sonarqube-data
+  nfs:
+    path: /nfs/sonarqube-data
+    server: nfs-server-ip
+    # nfs路径
+
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sonarqube-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: sonarqube-data
+</code></pre>
+<h3 id="新的需求">新的需求</h3>
+<p>在容器化安装了sonarqube之后，又提出了新的要求，需要安装一个新的插件，需要把指定的文件放到指定的文件夹下面并修改权限为775。为了完成他的这个需求，有只有重新在原本镜像的基础上进行重新打包。</p>
+<p>新的需求是为了让sonarqube支持多分支，需要安装一个插件<code>sonarqube-community-branch-plugin</code>。因此我们先准备好插件文件<a href="https://github.com/mc1arke/sonarqube-community-branch-plugin/releases">sonarqube-community-branch-plugin-1.8.1.jar</a>以及在<code>sonarqube</code>安装目录下的配置文件<code>sonarqube/conf/sonar.properties</code>。具体安装步骤为：</p>
+<p><code>1、将jar文件拷贝到sonar安装目录下extensions/plugins/ 及 lib/common下, 并将权限设为775</code><br>
+<code>2、在sonar安装目录下的config/sonar.properties中添加:</code><br>
+<code>sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonarqube-community-branch-plugin-1.8.1.jar=web</code><br>
+<code>sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonarqube-community-branch-plugin-1.8.1.jar=ce</code></p>
+<h3 id="重新打包镜像">重新打包镜像</h3>
+<p>据此我们编写dockerfile</p>
+<pre><code>FROM sonarqube:lts-community
+ADD sonarqube-community-branch-plugin-1.8.1.jar /opt/sonarqube/extensions/plugins/sonarqube-community-branch-plugin-1.8.1.jar
+ADD sonarqube-community-branch-plugin-1.8.1.jar /opt/sonarqube/lib/common/sonarqube-community-branch-plugin-1.8.1.jar
+ADD sonar.properties /opt/sonarqube/conf/sonar.properties
+RUN  chmod 775 /opt/sonarqube/lib/common/sonarqube-community-branch-plugin-1.8.1.jar 
+</code></pre>
+<p>引用原本的镜像，在此基础上，添加两个jar文件到指定的目录。并且手动编辑好<code>sonar.properties</code>文件，复制到镜像里面覆盖原来的配置。最后将<code>lib/common/sonarqube-community-branch-plugin-1.8.1.jar</code>权限设为775。</p>
+<p>编写好之后，开始打镜像<code>docker build -t image-name . </code></p>
+<p>编写好的镜像可以直接运行，就可以实现多分支功能啦。</p>
+<h3 id="部署到k8s">部署到k8s</h3>
+<p>根据之前我们已经编写过k8s的deployment-yaml了。我们只需要更改镜像的版本就好了。</p>
+<p>注意：如果您使用的是之前将extensions/plugins挂载到本机，则需要将文件复制到挂载出的目录<code>/opt/sonarqube/extensions/plugins/sonarqube-community-branch-plugin-1.8.1.jar</code>下面，因为k8s的挂载会覆盖原本的数据。同时也可以删除<code>ADD sonarqube-community-branch-plugin-1.8.1.jar /opt/sonarqube/extensions/plugins/sonarqube-community-branch-plugin-1.8.1.jar</code>。</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/docker-deploy-frpc/">
+              <h3 class="post-title">
+                Docker deploy frpc
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

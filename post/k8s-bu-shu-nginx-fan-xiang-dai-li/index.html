@@ -1,0 +1,217 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s部署nginx反向代理 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s部署nginx反向代理
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-07-03 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>如题</p>
+<!-- more -->
+<p>Dockerfile</p>
+<pre><code>FROM harbor.querycap.com/rk-infra/nginx:1.17.9
+COPY nginx.conf /etc/nginx/conf.d/nginx.conf
+RUN rm -f  /etc/nginx/conf.d/default.conf
+</code></pre>
+<p>nginx.conf</p>
+<pre><code>server {
+    listen 80;
+    location / {
+        	proxy_pass http://111.53.209.167:20080;
+	        proxy_http_version 1.1;
+
+    }
+}
+
+</code></pre>
+<p>k8s-yml</p>
+<pre><code>--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+spec:
+  selector:
+    srv: proxy
+  type: ClusterIP
+  ports:
+  - name: http-80
+    port: 80
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  selector:
+    matchLabels:
+      srv: proxy
+  template:
+    metadata:
+      labels:
+        srv: proxy
+    spec:
+      containers:
+      - name: proxy
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+        readinessProbe:
+          httpGet:
+            port: 80
+            path: /
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            port: 80
+            path: /
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        image: 改镜像
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: &quot;2&quot;
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: demo.rockontrol.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: proxy
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+</code></pre>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/docker-bu-shu-pgsql-zhu-cong/">
+              <h3 class="post-title">
+                docker部署pgsql主从
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

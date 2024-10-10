@@ -1,0 +1,210 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>docker部署pgsql主从 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              docker部署pgsql主从
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-06-27 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>docker部署pgsql主从，误打误撞搞出来了。</p>
+<!-- more -->
+<p>1、启动主库</p>
+<pre><code>docker run -d -e POSTGRES_PASSWORD='123456Ein!' \
+    -e DEFAULT_ENCODING=UTF8  \
+    -e  POSTGRES_DB=root  \
+    -e POSTGRES_USER=root  \
+    -e TZ=&quot;Asia/Shanghai&quot;  \
+    --name postgres_master  \
+    -v /data/pgsql:/var/lib/postgresql/data  \
+    -p 5432:5432  corray/postgis-11-mod
+</code></pre>
+<p>注意修改postgresql.auto.conf文件中的synchronous_commit = 'on'，修改为synchronous_commit = 'off'。<br>
+需要先编辑主节点的pg_hba.conf文件，添加以下参数，ip修改为从节点ip：</p>
+<pre><code>#postgresql.auto.conf
+
+synchronous_commit = 'off'
+
+
+#pg_hba.conf
+
+host replication replicaczxwfvx  10.103.12.27/16 trust
+</code></pre>
+<p>添加后重启主节点容器</p>
+<p>2、启动从库</p>
+<pre><code>docker run -d -e POSTGRES_PASSWORD='123456Ein!' \
+    -e DEFAULT_ENCODING=UTF8  \
+    -e  POSTGRES_DB=root  \
+    -e POSTGRES_USER=root  \
+    -e TZ=&quot;Asia/Shanghai&quot;  \
+    --name postgres_slave  \  
+    --add-host='pgsql-0.pgsql:10.103.12.26' \
+    -v /data/pgsql:/var/lib/postgresql/data  \
+    -p 5434:5432  corray/postgis-11-mod
+ 
+ 
+ 注意：
+ 1、-name postgres_slave名字不可更改。
+ 2、--add-host='pgsql-0.pgsql:10.103.12.26' 添加主机节点的hostname。
+</code></pre>
+<p>在完成上述操作之后，容器启动，会有如下日志</p>
+<pre><code>/usr/local/bin/docker-entrypoint.sh: sourcing /docker-entrypoint-initdb.d/06.master-slave-pgsql.sh
+salve_pg...
+this is slave pod...
+pulling master data...
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/8000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot &quot;pg_basebackup_39&quot;
+    0/78717 kB (0%), 0/1 tablespace (/tmp/data_tmp/backup_label         )
+78727/78727 kB (100%), 0/1 tablespace (/tmp/data_tmp/global/pg_control    )
+78727/78727 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/8000130
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: base backup completed
+restart pgsql...
+
+/usr/local/bin/docker-entrypoint.sh: sourcing /docker-entrypoint-initdb.d/10_postgis.sh
+skiping gis-init...
+
+pg_ctl: PID file &quot;/var/lib/postgresql/data/postmaster.pid&quot; does not exist
+Is server running?
+</code></pre>
+<p>此时，从节点已经从主节点同步完了数据，并且此时需要重启pgsql。此时容器处于退出状态。此时手动重启下docker容器。此时从节点启动起来，会自动完成主从配置。可以从以下几方面查看主从是否成功。</p>
+<pre><code>1、从节点pgsql数据目录下存在recovery.conf文件
+2、从节点pgsql数据目录下slave.logs内容为ok！
+3、从节点宿主机上执行 ps -ef |grep post 有 postgres: walreceiver   streaming 0/9001778进程
+4、主节点宿主机执行  ps -ef |grep send 有postgres: walsender replicaczxwfvx 10.103.12.27(44042) streaming 0/9001778 进程
+5、主库创建数据库，能马上同步到从库
+</code></pre>
+<p>3、synchronous_commit设置<br>
+在 PostgreSQL 中，同步复制模式是通过 <code>synchronous_commit</code> 参数来设置的。默认情况下，该参数的值为 <code>on</code>，表示主节点会等待所有备份节点都成功复制了事务才会提交。如果将该参数设置为 <code>off</code>，则表示主节点不会等待备份节点完成复制就会提交事务，这就是异步复制模式。</p>
+<p>您可以通过以下步骤来调整同步复制模式：</p>
+<ol>
+<li>
+<p>查看当前的 <code>synchronous_commit</code> 参数的值：</p>
+<p>SHOW synchronous_commit;</p>
+</li>
+<li>
+<p>如果该参数的值为 <code>on</code>，则表示当前使用的是同步复制模式。如果您想切换到异步复制模式，可以将该参数的值设置为 <code>off</code>：</p>
+<p>SET synchronous_commit = off;</p>
+<p>这样就可以将同步复制模式切换为异步复制模式了。</p>
+</li>
+<li>
+<p>如果您想切换回同步复制模式，可以将 <code>synchronous_commit</code> 参数的值再次设置为 <code>on</code>：</p>
+<p>SET synchronous_commit = on;</p>
+</li>
+</ol>
+<p>需要注意的是，异步复制模式可能会导致数据不一致或者数据丢失，因此需要谨慎操作。建议在进行操作之前备份数据，并在操作之后检查数据是否一致。</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/centos7-chi-xian-an-zhuang-ansible/">
+              <h3 class="post-title">
+                centos7离线安装ansible
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

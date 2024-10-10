@@ -1,0 +1,141 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>如何创建/保存/同步多架构容器 Docker 镜像 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              如何创建/保存/同步多架构容器 Docker 镜像
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-04-21 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>docker镜像遇到了多架构的相关问题，试试能不能解决</p>
+<!-- more -->
+<p>如何构建多架构镜像</p>
+<p>在此之前，我们要了解BuildKit。BuildKit是一个高度可定制的构建工具，用于构建容器化应用程序。它是Docker的官方构建引擎，但也可以作为独立工具使用。BuildKit具有高性能和灵活性，支持多阶段构建和并发构建策略，并提供了丰富的构建缓存和镜像优化功能。</p>
+<p>Buildx是将构建多架构镜像的功能集成到Docker CLI中的插件，它使用了BuildKit作为构建引擎。与BuildKit相比，Buildx提供了额外的功能和选项，例如可以使用<code>--platform</code>选项同时指定多个平台、支持交叉编译、支持镜像导出、支持远程构建等等。</p>
+<p>使用Buildx构建多架构镜像的步骤与使用BuildKit类似，只是需要先安装Buildx插件。例如，使用以下命令在MacOS上安装Buildx：</p>
+<pre><code>docker buildx install --driver docker-container
+</code></pre>
+<p>然后就可以使用<code>docker buildx</code>命令来构建多架构镜像了，例如：</p>
+<pre><code>docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t &lt;image-name&gt; .
+</code></pre>
+<p>这会在Linux x86_64、ARM64和ARMv7架构上构建镜像。</p>
+<p>总的来说，Buildx是一个更高级、更易于使用的多架构构建工具，它基于BuildKit构建引擎实现了更多的功能，并且可以方便地与Docker CLI集成使用。</p>
+<pre><code>FROM --platform=$TARGETPLATFORM alpine
+
+RUN uname -a &gt; /os.txt
+
+CMD cat /os.txt
+
+</code></pre>
+<p>施工中....</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/sonarqube-in-kubernetes/">
+              <h3 class="post-title">
+                SonarQube in kubernetes
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

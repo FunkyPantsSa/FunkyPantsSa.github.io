@@ -1,0 +1,170 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>centos7离线安装ansible | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              centos7离线安装ansible
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-06-27 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>遇到一个离线环境，需要安装ansible来批量执行命令。网上大多数教程都是找一台系统一样且有网络的机器，下载依赖然后上传到离线环境安装，但是我这边没有有网络的相同系统版本的机器，找了半天，参考了tidb的历史部署文档，发现可以直接离线部署ansible。</p>
+<!-- more -->
+<p>tidb离线部署ansible文档<br>
+https://docs-archive.pingcap.com/zh/tidb/v3.1/offline-deployment-using-ansible</p>
+<h1 id="安装依赖包">安装依赖包</h1>
+<p>在下载机上下载系统依赖离线安装包，然后上传至中控机。该离线包仅支持 CentOS 7 系统，包含 pip 及 sshpass。<br>
+依赖离线安装包：https://download.pingcap.org/ansible-system-rpms.el7.tar.gz</p>
+<p>在中控机上安装系统依赖包：</p>
+<pre><code>tar -xzvf ansible-system-rpms.el7.tar.gz &amp;&amp;
+cd ansible-system-rpms.el7 &amp;&amp;
+chmod u+x install_ansible_system_rpms.sh &amp;&amp;
+./install_ansible_system_rpms.sh
+</code></pre>
+<p>安装完成后，可通过 pip -V 验证 pip 是否安装成功：</p>
+<pre><code>pip -V
+pip 8.1.2 from /usr/lib/python2.7/site-packages (python 2.7)
+</code></pre>
+<p>注意<br>
+如果你的系统已安装 pip，请确认版本 &gt;= 8.1.2，否则离线安装 TiDB Ansible 及其依赖时，会有兼容问题。</p>
+<h1 id="离线安装ansible">离线安装ansible</h1>
+<p>Ansible 及相关依赖版本记录在 tidb-ansible/requirements.txt 文件中。下面步骤以安装 Ansible 2.5 为例。</p>
+<p>在下载机上下载 Ansible 2.5 离线安装包，然后上传至中控机。<br>
+离线安装包：https://download.pingcap.org/ansible-2.5.0-pip.tar.gz<br>
+离线安装 TiDB Ansible 及相关依赖：</p>
+<pre><code>tar -xzvf ansible-2.5.0-pip.tar.gz &amp;&amp;
+cd ansible-2.5.0-pip/ &amp;&amp;
+chmod u+x install_ansible.sh &amp;&amp;
+./install_ansible.sh
+</code></pre>
+<p>安装完成后，可通过 ansible --version 查看版本：</p>
+<pre><code>ansible --version
+ansible 2.5.0
+</code></pre>
+<h1 id="进阶">进阶</h1>
+<p>以上是tidb官方提供的离线安装方式，安装ansible2.5版本没有任何问题，官方也只建议使用 Ansible 2.4 至 2.7.11 版本。但是其实我需要的版本是2.9版本，于是我使用相同方式安装ansible2.9。发现依旧成功了。</p>
+<p>在解压 Ansible 2.5 离线安装包之后，在<code>ansible-2.5.0-pip/ansible_offline_packages</code>文件夹中，存在有需要pip安装的文件，其中就包括ansible2.5的文件<code>ansible-2.5.0.tar.gz</code>。</p>
+<p>下载ansible安装包，到<code>ansible-2.5.0-pip/ansible_offline_packages</code>文件夹<br>
+下载地址：https://releases.ansible.com/ansible/</p>
+<p>注意：<br>
+1、文件夹中只能存在一个ansible安装文件。不能同时存在两个<code>ansible-*.tar.gz</code><br>
+2、ansible安装文件只能是数字，不能有其他字符：如<code>ansible-2.9.27rc1.tar.gz</code>是被允许的，需要更名为<code>ansible-2.9.27.tar.gz </code><br>
+3、目前我只尝试了到2.9.27版本。理论上是2.5到2.9版本都支持。</p>
+<p>替换完成后还是直接运行：</p>
+<pre><code>chmod u+x install_ansible.sh &amp;&amp;
+./install_ansible.sh
+</code></pre>
+<p>安装完成后，可通过 ansible --version 查看版本：</p>
+<pre><code>ansible --version
+ansible 2.9.27
+</code></pre>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/ru-he-chuang-jian-bao-cun-tong-bu-duo-jia-gou-rong-qi-docker-jing-xiang/">
+              <h3 class="post-title">
+                如何创建/保存/同步多架构容器 Docker 镜像
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

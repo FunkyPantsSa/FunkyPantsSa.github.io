@@ -1,0 +1,198 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Docker deploy frpc | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Docker deploy frpc
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-04-07 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>原本是想用openwrt上运行两个frpc，但是luci的app只能运行一个。于是谋生了使用docker来部署一个frpc的想法。方便管理。</p>
+<!-- more -->
+<h1 id="准备">准备</h1>
+<pre><code>前置准备：
+机器部署docker
+创建目录:/data/frp/
+准备frpc.ini文件，并放在/data/frp/目录下
+在修改/data/frp/frpc.ini后，需要重启镜像，重新加载配置文件。连接状态使用docker logs查看
+</code></pre>
+<h1 id="执行完毕">执行，完毕</h1>
+<p>docker pull snowdreamtech/frpc</p>
+<p>docker run --restart=always --network host -d -v /data/frp/frpc.ini:/etc/frp/frpc.ini --name frpc_new snowdreamtech/frpc</p>
+<h1 id="走弯路">走弯路</h1>
+<h2 id="构建docker镜像">构建docker镜像</h2>
+<p>需要部署docker。新建一个目录<code>tmp</code>,并在目录下新建<code>Dockerfile</code>.</p>
+<pre><code class="language-shell">mkdir tmp
+cd tmp
+</code></pre>
+<pre><code>#一起复制执行
+cat &lt;&lt; EOF &gt;Dockerfile
+FROM golang:1.19
+WORKDIR /frpc
+RUN apt-get update &amp;&amp; apt-get install -y unzip
+RUN wget https://github.com/fatedier/frp/archive/refs/tags/v0.46.0.zip &amp;&amp; unzip v0.46.0.zip &amp;&amp; cd frp-0.46.0/ &amp;&amp; make build &amp;&amp; cp bin/* /frpc
+ENTRYPOINT [&quot;./frpc&quot;, &quot;-c&quot;, &quot;/mnt/frp/frpc.ini&quot;]
+EOF
+
+</code></pre>
+<p>Dockerfile解析：</p>
+<pre><code>FROM golang:1.19  #基础镜像是golang:1.19
+WORKDIR /frpc    #指定工作目录
+RUN apt-get update &amp;&amp; apt-get install -y unzip  #运行命令：安装unzip
+RUN wget https://github.com/fatedier/frp/archive/refs/tags/v0.46.0.zip &amp;&amp; unzip v0.46.0.zip &amp;&amp; cd frp-0.46.0/ &amp;&amp; make build &amp;&amp; cp bin/* /frpc   # 运行命令：wget下载frpc安装包，然后解压，然后make build构建二进制运行文件，然后把构建出来的frpc复制到工作目录
+ENTRYPOINT [&quot;./frpc&quot;, &quot;-c&quot;, &quot;/mnt/frp/frpc.ini&quot;]  #指定容器启动的时候执行的命令：./frpc -c /mnt/frp/frpc.ini
+</code></pre>
+<p>构建docker镜像：</p>
+<p>docker -t是tag，是构建docker镜像的标签。注意最后有一个点，代表的是读取当前目录下的Dockerfile</p>
+<pre><code class="language-shell">docker build -t frpc .
+</code></pre>
+<p>构建完成的镜像：</p>
+<pre><code class="language-shell">docker images 
+
+
+[root@OpenWrt:10:24 AM /data/tmp] # docker images
+REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
+frpc          latest    7b04ef70a9b2   16 hours ago   1.36GB
+golang        1.19      ee6a422e97e0   2 days ago     993MB
+
+</code></pre>
+<h2 id="运行">运行</h2>
+<p>运行镜像：</p>
+<pre><code class="language-shell">docker run --name frpc --net=host --restart=always -v /data/frp:/mnt/frp -d frpc
+</code></pre>
+<pre><code class="language-shell">--name: 指定容器名字
+--net: 容器使用宿主机网络
+--restrat: 重启策略，always是总是重启
+-v： 目录挂载，是把宿主机的/data/frp目录，挂载到容器的/mnt/frp目录。
+-d: 指定使用的镜像，刚打镜像出来的frpc
+</code></pre>
+<h2 id="其他命令">其他命令：</h2>
+<pre><code class="language-shell">#查看日志：
+docker logs frpc
+
+#重启容器
+docker restart frpc
+
+#停止容器
+docker stop frpc
+
+#删除容器
+docker rm frpc
+
+#查看所有运行容器：
+docker ps 
+
+#查看所有运行容器(包括非运行状态)
+docker ps -a
+</code></pre>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/yi-xie-chang-yong-de-ming-ling/">
+              <h3 class="post-title">
+                一些常用的命令
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

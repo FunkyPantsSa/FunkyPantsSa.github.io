@@ -1,0 +1,190 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s deploy etcd | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s deploy etcd
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2023-08-07 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: etcd
+  name: etcd
+  namespace: middleware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+        - env:
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: &quot;yes&quot;
+            - name: &quot;ETCD_ROOT_PASSWORD&quot;
+              value: &quot;&quot;
+            - name: &quot;ETCD_ADVERTISE_CLIENT_URLS&quot;
+              value: &quot;http://0.0.0.0:2379&quot;
+            - name: &quot;ETCD_LISTEN_PEER_URLS&quot;
+              value: &quot;http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_INITIAL_ADVERTISE_PEER_URLS&quot;
+              value: &quot;http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_INITIAL_CLUSTER&quot;
+              value: &quot;defualt=http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_NAME&quot;
+              value: &quot;&quot;
+            - name: &quot;ETCD_DATA_DIR&quot;
+              value: &quot;/opt/bitnami/etcd/data&quot;
+          image: bitnami/etcd
+          securityContext:
+            privileged: true
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          volumeMounts:
+            - mountPath: /opt/bitnami/etcd/data
+              name: volv2
+      volumes:
+        - hostPath:
+            path: /root/k8s/moonfdd/etcd/opt/bitnami/etcd/data
+            type: DirectoryOrCreate
+          name: volv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: etcd
+  name: etcd
+  namespace: middleware
+spec:
+  ports:
+    - port: 2379
+      protocol: TCP
+      targetPort: 2379
+      name: 2379-2379
+    - port: 2380
+      protocol: TCP
+      targetPort: 2380
+      name: 2380-2380
+  selector:
+    app: etcd
+  type: NodePort
+</code></pre>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/docker-deploy-mysql-slave/">
+              <h3 class="post-title">
+                docker部署mysql主从
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

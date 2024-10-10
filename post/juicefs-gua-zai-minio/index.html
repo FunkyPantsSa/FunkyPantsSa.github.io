@@ -1,0 +1,274 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JuiceFS挂载minio | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              JuiceFS挂载minio
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2024-01-15 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <blockquote>
+<p>引用官方文档：<a href="https://juicefs.com/docs/zh/community/introduction/">官方文档</a></p>
+<p><strong>JuiceFS</strong> 是一款面向云原生设计的高性能分布式文件系统，在 Apache 2.0 开源协议下发布。提供完备的 <a href="https://en.wikipedia.org/wiki/POSIX">POSIX</a> 兼容性，可将几乎所有对象存储接入本地作为海量本地磁盘使用，亦可同时在跨平台、跨地区的不同主机上挂载读写。</p>
+<p>JuiceFS 采用「数据」与「元数据」分离存储的架构，从而实现文件系统的分布式设计。文件数据本身会被切分保存在<a href="https://juicefs.com/docs/zh/community/reference/how_to_set_up_object_storage#supported-object-storage">对象存储</a>（例如 Amazon S3），而元数据则可以保存在 Redis、MySQL、TiKV、SQLite 等多种<a href="https://juicefs.com/docs/zh/community/databases_for_metadata">数据库</a>中，你可以根据场景与性能要求进行选择。</p>
+<p>JuiceFS 提供了丰富的 API，适用于各种形式数据的管理、分析、归档、备份，可以在不修改代码的前提下无缝对接大数据、机器学习、人工智能等应用平台，为其提供海量、弹性、低价的高性能存储。运维人员不用再为可用性、灾难恢复、监控、扩容等工作烦恼，专注于业务开发，提升研发效率。同时运维细节的简化，对 DevOps 极其友好。</p>
+</blockquote>
+<p>k8s集群的存储一直是比较难以解决的问题。将k8s的存储大致可以分为两部分，第一部分是属于存在于k8s节点上的存储方式，比如emptyDir、hostPath、local。另外一种是属于外部的存储方式，比如nfs、cephfs等以及各种兼容CSI定义的标准存储接口。</p>
+<p>在现有的计算架构下，存算分离变得越来越普遍，只用专门的硬件来负责专有的功能。扩展到云原生架构下，现有集群只负责计算，存储等功能则有外部存储来负责。放到具体的例子就是，对于容器化部署的数据库，数据应该如何存储？贪图容器化部署数据库的可扩展和故障恢复等优点，但是又担心数据库数据丢失等风险。</p>
+<p>当前我使用最多的是方式是hostPath，因为业务单机部署，恢复备份都十分方便。直接使用一个yaml能快速拉起一个能用的数据库。但是这仅限于单体架构或者测试情况下。当集群复杂度上升之后，这种使用hostPath的将面临：容器只能在指定节点、hostPath容易成为容器逃逸和攻击的方式等问题。这就需要探索其他的存储方式。</p>
+<p>在尝试过程中，调研到了JuiceFS这一个兼容很多后端存储方式的存储系统。</p>
+<p>JuiceFS使用元数据和数据分开存储的方式，来兼容minio、hdfs等后端存储，以及将后端储存POSIX 兼容的方式挂载到服务器，将海量云端存储直接当做本地存储来使用。</p>
+<p>JuiceFS的客户端主要用于数据的文件读写以及和数据存储和元数据存储沟通的功能。数据存储则是可以使用hdfs、minio、各大云厂商的对象存储等功能，用于将数据分块进行存储。元数据存储支持使用redis、mysql、pgsql、tikv等主流数据库，用于存放文件的元数据。</p>
+<p>基本架构如下图：</p>
+<figure data-type="image" tabindex="1"><img src="https://juicefs.com/docs/zh/assets/images/juicefs-arch-52477e7677b23c870b72f08bb28c7ceb.svg" alt="JuiceFS-arch" loading="lazy"></figure>
+<p>由于我只是验证可行性，于是我使用了k3s单节点。k3s二进制部署JuiceFS客户端用于交互，k3s部署minio，来充当后端存储服务器，使用k3s部署redis，当做元数据存储。</p>
+<pre><code>root@mqj-server:~# kubectl  get po -n middleware
+NAME                     READY   STATUS    RESTARTS   AGE
+minio-6d54598b6b-bqqd7   1/1     Running   0          5h7m
+redis-7f8c6f7c56-5nl2k   1/1     Running   0          92m
+
+root@mqj-server:~# whereis juicefs
+juicefs: /usr/local/bin/juicefs
+</code></pre>
+<p>首先生成块文件：</p>
+<pre><code>juicefs format \
+    --storage minio \
+    --bucket http://192.168.7.243:39000/test111 \
+    --access-key ACh5Jnh4CTxeg9DK3BAN33Pt \
+    --secret-key AKJKSARUuMarPPcVE5KZBX54TB79bMBJdR2E \
+    &quot;redis://:redis123@192.168.7.243:36479/1&quot; \
+    jfs
+     
+</code></pre>
+<pre><code>
+2024/01/15 08:13:19.904272 juicefs[2284846] &lt;INFO&gt;: Meta address: redis://:****@192.168.7.243:36479/1 [interface.go:497]
+2024/01/15 08:13:19.905388 juicefs[2284846] &lt;WARNING&gt;: AOF is not enabled, you may lose data if Redis is not shutdown properly. [info.go:84]
+2024/01/15 08:13:19.905648 juicefs[2284846] &lt;INFO&gt;: Ping redis latency: 163.175µs [redis.go:3593]
+2024/01/15 08:13:19.906072 juicefs[2284846] &lt;INFO&gt;: Data use minio://192.168.7.243:39000/test111/jfs/ [format.go:471]
+2024/01/15 08:13:19.918108 juicefs[2284846] &lt;INFO&gt;: Volume is formatted as {
+  &quot;Name&quot;: &quot;jfs&quot;,
+  &quot;UUID&quot;: &quot;a1b9b273-6571-4538-b2ab-b703f7839fe4&quot;,
+  &quot;Storage&quot;: &quot;minio&quot;,
+  &quot;Bucket&quot;: &quot;http://192.168.7.243:39000/test111&quot;,
+  &quot;AccessKey&quot;: &quot;ACh5Jnh4CTxeg9DK3BAN33Pt&quot;,
+  &quot;SecretKey&quot;: &quot;removed&quot;,
+  &quot;BlockSize&quot;: 4096,
+  &quot;Compression&quot;: &quot;none&quot;,
+  &quot;EncryptAlgo&quot;: &quot;aes256gcm-rsa&quot;,
+  &quot;KeyEncrypted&quot;: true,
+  &quot;TrashDays&quot;: 1,
+  &quot;MetaVersion&quot;: 1,
+  &quot;MinClientVersion&quot;: &quot;1.1.0-A&quot;,
+  &quot;DirStats&quot;: true
+} [format.go:508]
+</code></pre>
+<p>然后将已经生成好的块文件挂载到本地目录<code>~/jfs</code>。</p>
+<pre><code class="language-shell">juicefs mount -d -o allow_other,writeback_cache redis://:redis123@192.168.7.243:36479/1  ~/jfs
+</code></pre>
+<p><code>df -TH |grep jfs</code>可以查看挂载情况</p>
+<pre><code>root@mqj-server:~# df -TH |grep jfs
+JuiceFS:jfs                       fuse.juicefs  1.2P  246M  1.2P   1% /root/jfs
+</code></pre>
+<p>可以看到/root/jfs已经挂载上了。</p>
+<p>我们新建一个mysql的，使用hostPath吧数据目录挂载到/root/jfs中。</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+  clusterIP: None
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: yourpassword # Change this to your desired root password
+        - name: MYSQL_DATABASE
+          value: mydatabase # Optional: specify a database to be created
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        hostPath:
+          path: /root/jfs/mysql # Change this to your desired host directory
+          type: DirectoryOrCreate
+
+</code></pre>
+<p>发现服务可以正常启动，我们查看对应目录，发现有mysql运行文件存在：</p>
+<pre><code class="language-shell">root@mqj-server:~/jfs/mysql# ll
+total 188455
+drwxr-xr-x 6 systemd-coredump root                 4096 Jan 15 08:28 ./
+drwxrwxrwx 4 root             root                 4096 Jan 15 06:51 ../
+-rw-r----- 1 systemd-coredump systemd-coredump       56 Jan 15 06:52 auto.cnf
+-rw------- 1 systemd-coredump systemd-coredump     1680 Jan 15 06:52 ca-key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 ca.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 client-cert.pem
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 client-key.pem
+-rw-r----- 1 systemd-coredump systemd-coredump      682 Jan 15 08:08 ib_buffer_pool
+-rw-r----- 1 systemd-coredump systemd-coredump 79691776 Jan 15 08:28 ibdata1
+-rw-r----- 1 systemd-coredump systemd-coredump 50331648 Jan 15 08:28 ib_logfile0
+-rw-r----- 1 systemd-coredump systemd-coredump 50331648 Jan 15 06:52 ib_logfile1
+-rw-r----- 1 systemd-coredump systemd-coredump 12582912 Jan 15 08:28 ibtmp1
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 mydatabase/
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 mysql/
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 performance_schema/
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 private_key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump      452 Jan 15 06:52 public_key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 server-cert.pem
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 server-key.pem
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 sys/
+root@mqj-server:~/jfs/mysql# pwd
+/root/jfs/mysql
+root@mqj-server:~/jfs/mysql#
+</code></pre>
+<p>我们查看minio存储的目录，发现存在有对应的块文件。</p>
+<pre><code class="language-shell">root@mqj-server:/data/minio/test111/jfs# ls
+chunks  juicefs_uuid  meta
+root@mqj-server:/data/minio/test111/jfs#
+root@mqj-server:/data/minio/test111/jfs#
+root@mqj-server:/data/minio/test111/jfs# pwd
+/data/minio/test111/jfs
+root@mqj-server:/data/minio/test111/jfs#
+</code></pre>
+<p>检查redis键值对：</p>
+<figure data-type="image" tabindex="2"><img src="http://lsky.volin.top/i/2024/01/15/65a4f1ac389fb.png" alt="1705308583115.png" loading="lazy"></figure>
+<p>成功验证，使用minio来存储mysql的数据。</p>
+<p>但是本方案是可行性，但是维护需要更多的维护一个redis和minio，如果当redis或者其他的元数据存储介质丢失的情况，可能会造成无法挽回的数据丢失。如果使用此方式，应当充分考虑元存储、数据存储等组件的健壮程度，以及做好数据备份以备不时之需。</p>
+<p>官方那个提供了兼容k8s的CSI组件来进行容器化部署，后续再进行验证和更新。</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/coredns-error/">
+              <h3 class="post-title">
+                记一次coredns解析故障
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

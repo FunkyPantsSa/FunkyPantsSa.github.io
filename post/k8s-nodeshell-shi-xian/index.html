@@ -1,0 +1,239 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s-nodeshell实现 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s-nodeshell实现
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2024-10-10 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>对于node我们一般会禁止ssh登录，但有时又不得不登录到node节点查看和debug，这时就可以通过node-shell的方式获得对应node的root shell。</p>
+<!-- more -->
+<p>安装：<br>
+https://github.com/kvaps/kubectl-node-shell/tree/master</p>
+<p>使用curl进行安装。</p>
+<pre><code class="language-shell">curl -LO https://github.com/kvaps/kubectl-node-shell/raw/master/kubectl-node_shell
+chmod +x ./kubectl-node_shell
+sudo mv ./kubectl-node_shell /usr/local/bin/kubectl-node_shell
+</code></pre>
+<p>使用</p>
+<pre><code class="language-shell">
+# Get standard bash shell
+kubectl node-shell &lt;node&gt;
+
+# Use X-mode (mount /host, and do not enter host namespace)
+kubectl node-shell -x &lt;node&gt;
+
+# Execute custom command
+kubectl node-shell &lt;node&gt; -- echo 123
+
+# Use stdin
+cat /etc/passwd | kubectl node-shell &lt;node&gt; -- sh -c 'cat &gt; /tmp/passwd'
+
+# Run oneliner script
+kubectl node-shell &lt;node&gt; -- sh -c 'cat /tmp/passwd; rm -f /tmp/passwd'
+</code></pre>
+<p>原理：<br>
+其实就是一个bash脚本，所做的就是起一个特权容器，然后使用nsenter进入到宿主机，从而获取到root shell。<br>
+nsenter就是namespace enter的意思，它可以进入到目标程序所在的namespace中，因此可以用来调试容器程序。我们都知道目前存在的几个namespace，比如网络，用户，pid等，nsenter都有对应的参数可以指定，从而进入该namespace。<br>
+对于容器中有bash程序的场景，我们通过exec的方式就能进入容器内部，此时并不需要nsenter，但是对于那些没有bash程序的，就没法通过exec进入容器了，我们首先通过docker inspect获得对应容器的pid，然后通过nsenter进入utc、net、和pid namespace，这样我们就能使用宿主机的调试工具，比如tcpdump，ip等命令。</p>
+<p>扩展<br>
+创建nodeshell的daemonset:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nsenter-daemonset
+  namespace: default
+  labels:
+    app: nsenter
+spec:
+  selector:
+    matchLabels:
+      app: nsenter
+  template:
+    metadata:
+      labels:
+        app: nsenter
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+        - key: &quot;CriticalAddonsOnly&quot;
+          operator: &quot;Exists&quot;
+        - effect: &quot;NoExecute&quot;
+          operator: &quot;Exists&quot;
+      containers:
+        - name: nsenter
+          image: docker.io/library/alpine
+          securityContext:
+            privileged: true
+          stdin: true
+          stdinOnce: true
+          tty: true
+          command: [ &quot;nsenter&quot;, &quot;--target&quot;, &quot;1&quot;, &quot;--mount&quot;, &quot;--uts&quot;, &quot;--ipc&quot;, &quot;--net&quot;, &quot;--pid&quot;, &quot;--&quot;, &quot;bash&quot;, &quot;-l&quot; ]
+          resources:
+            limits:
+              cpu: &quot;100m&quot;
+              memory: &quot;256Mi&quot;
+            requests:
+              cpu: &quot;100m&quot;
+              memory: &quot;256Mi&quot;
+      nodeSelector:
+        kubernetes.io/hostname: node1
+        
+</code></pre>
+<p>创建nodeshell的pod:</p>
+<pre><code class="language-shell">kubectl  --namespace= xxx  run --image docker.io/library/alpine --restart=Never '--overrides={
+  &quot;spec&quot;: {
+    &quot;nodeName&quot;: &quot;node1&quot;,  #更改nodename
+    &quot;hostPID&quot;: true,
+    &quot;hostNetwork&quot;: true,
+    &quot;containers&quot;: [
+      {
+        &quot;securityContext&quot;: {
+          &quot;privileged&quot;: true
+        },
+        &quot;image&quot;: &quot;docker.io/library/alpine&quot;,
+        &quot;name&quot;: &quot;nsenter&quot;,
+        &quot;stdin&quot;: true,
+        &quot;stdinOnce&quot;: true,
+        &quot;tty&quot;: true,
+        &quot;command&quot;: [ &quot;nsenter&quot;, &quot;--target&quot;, &quot;1&quot;, &quot;--mount&quot;, &quot;--uts&quot;, &quot;--ipc&quot;, &quot;--net&quot;, &quot;--pid&quot;, &quot;--&quot;, &quot;bash&quot;, &quot;-l&quot; ],
+        &quot;resources&quot;: {
+          &quot;limits&quot;: {
+            &quot;cpu&quot;: &quot;100m&quot;,
+            &quot;memory&quot;: &quot;256Mi&quot;
+          },
+          &quot;requests&quot;: {
+            &quot;cpu&quot;: &quot;100m&quot;,
+            &quot;memory&quot;: &quot;256Mi&quot;
+          }
+        }
+      }
+    ],
+    &quot;tolerations&quot;: [
+      {
+        &quot;key&quot;: &quot;CriticalAddonsOnly&quot;,
+        &quot;operator&quot;: &quot;Exists&quot;
+      },
+      {
+        &quot;effect&quot;: &quot;NoExecute&quot;,
+        &quot;operator&quot;: &quot;Exists&quot;
+      }
+    ]
+  }
+}' --labels= -t -i nsenter-h3m5fy
+
+
+</code></pre>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/nvidia-he-ubuntu-cai-keng/">
+              <h3 class="post-title">
+                NVIDIA和ubuntu踩坑
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>

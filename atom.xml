@@ -1,0 +1,1495 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://blog.volin.top</id>
+    <title>FunkyPantsSa</title>
+    <updated>2024-10-10T08:07:52.315Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://blog.volin.top"/>
+    <link rel="self" href="https://blog.volin.top/atom.xml"/>
+    <subtitle>&lt;script type=&quot;text/javascript&quot; src=&quot;https://yijuzhan.com/api/word.php?m=js&quot;&gt;&lt;/script&gt;&lt;script&gt;document.write(&quot;&lt;div&gt;&quot;);yiju(true);document.write(&quot;&lt;/div&gt;&quot;);&lt;/script&gt;</subtitle>
+    <logo>https://blog.volin.top/images/avatar.png</logo>
+    <icon>https://blog.volin.top/favicon.ico</icon>
+    <rights>All rights reserved 2024, FunkyPantsSa</rights>
+    <entry>
+        <title type="html"><![CDATA[k8s-nodeshell实现]]></title>
+        <id>https://blog.volin.top/post/k8s-nodeshell-shi-xian/</id>
+        <link href="https://blog.volin.top/post/k8s-nodeshell-shi-xian/">
+        </link>
+        <updated>2024-10-10T07:31:04.000Z</updated>
+        <summary type="html"><![CDATA[<p>对于node我们一般会禁止ssh登录，但有时又不得不登录到node节点查看和debug，这时就可以通过node-shell的方式获得对应node的root shell。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>对于node我们一般会禁止ssh登录，但有时又不得不登录到node节点查看和debug，这时就可以通过node-shell的方式获得对应node的root shell。</p>
+<!-- more -->
+<p>安装：<br>
+https://github.com/kvaps/kubectl-node-shell/tree/master</p>
+<p>使用curl进行安装。</p>
+<pre><code class="language-shell">curl -LO https://github.com/kvaps/kubectl-node-shell/raw/master/kubectl-node_shell
+chmod +x ./kubectl-node_shell
+sudo mv ./kubectl-node_shell /usr/local/bin/kubectl-node_shell
+</code></pre>
+<p>使用</p>
+<pre><code class="language-shell">
+# Get standard bash shell
+kubectl node-shell &lt;node&gt;
+
+# Use X-mode (mount /host, and do not enter host namespace)
+kubectl node-shell -x &lt;node&gt;
+
+# Execute custom command
+kubectl node-shell &lt;node&gt; -- echo 123
+
+# Use stdin
+cat /etc/passwd | kubectl node-shell &lt;node&gt; -- sh -c 'cat &gt; /tmp/passwd'
+
+# Run oneliner script
+kubectl node-shell &lt;node&gt; -- sh -c 'cat /tmp/passwd; rm -f /tmp/passwd'
+</code></pre>
+<p>原理：<br>
+其实就是一个bash脚本，所做的就是起一个特权容器，然后使用nsenter进入到宿主机，从而获取到root shell。<br>
+nsenter就是namespace enter的意思，它可以进入到目标程序所在的namespace中，因此可以用来调试容器程序。我们都知道目前存在的几个namespace，比如网络，用户，pid等，nsenter都有对应的参数可以指定，从而进入该namespace。<br>
+对于容器中有bash程序的场景，我们通过exec的方式就能进入容器内部，此时并不需要nsenter，但是对于那些没有bash程序的，就没法通过exec进入容器了，我们首先通过docker inspect获得对应容器的pid，然后通过nsenter进入utc、net、和pid namespace，这样我们就能使用宿主机的调试工具，比如tcpdump，ip等命令。</p>
+<p>扩展<br>
+创建nodeshell的daemonset:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nsenter-daemonset
+  namespace: default
+  labels:
+    app: nsenter
+spec:
+  selector:
+    matchLabels:
+      app: nsenter
+  template:
+    metadata:
+      labels:
+        app: nsenter
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+        - key: &quot;CriticalAddonsOnly&quot;
+          operator: &quot;Exists&quot;
+        - effect: &quot;NoExecute&quot;
+          operator: &quot;Exists&quot;
+      containers:
+        - name: nsenter
+          image: docker.io/library/alpine
+          securityContext:
+            privileged: true
+          stdin: true
+          stdinOnce: true
+          tty: true
+          command: [ &quot;nsenter&quot;, &quot;--target&quot;, &quot;1&quot;, &quot;--mount&quot;, &quot;--uts&quot;, &quot;--ipc&quot;, &quot;--net&quot;, &quot;--pid&quot;, &quot;--&quot;, &quot;bash&quot;, &quot;-l&quot; ]
+          resources:
+            limits:
+              cpu: &quot;100m&quot;
+              memory: &quot;256Mi&quot;
+            requests:
+              cpu: &quot;100m&quot;
+              memory: &quot;256Mi&quot;
+      nodeSelector:
+        kubernetes.io/hostname: node1
+        
+</code></pre>
+<p>创建nodeshell的pod:</p>
+<pre><code class="language-shell">kubectl  --namespace= xxx  run --image docker.io/library/alpine --restart=Never '--overrides={
+  &quot;spec&quot;: {
+    &quot;nodeName&quot;: &quot;node1&quot;,  #更改nodename
+    &quot;hostPID&quot;: true,
+    &quot;hostNetwork&quot;: true,
+    &quot;containers&quot;: [
+      {
+        &quot;securityContext&quot;: {
+          &quot;privileged&quot;: true
+        },
+        &quot;image&quot;: &quot;docker.io/library/alpine&quot;,
+        &quot;name&quot;: &quot;nsenter&quot;,
+        &quot;stdin&quot;: true,
+        &quot;stdinOnce&quot;: true,
+        &quot;tty&quot;: true,
+        &quot;command&quot;: [ &quot;nsenter&quot;, &quot;--target&quot;, &quot;1&quot;, &quot;--mount&quot;, &quot;--uts&quot;, &quot;--ipc&quot;, &quot;--net&quot;, &quot;--pid&quot;, &quot;--&quot;, &quot;bash&quot;, &quot;-l&quot; ],
+        &quot;resources&quot;: {
+          &quot;limits&quot;: {
+            &quot;cpu&quot;: &quot;100m&quot;,
+            &quot;memory&quot;: &quot;256Mi&quot;
+          },
+          &quot;requests&quot;: {
+            &quot;cpu&quot;: &quot;100m&quot;,
+            &quot;memory&quot;: &quot;256Mi&quot;
+          }
+        }
+      }
+    ],
+    &quot;tolerations&quot;: [
+      {
+        &quot;key&quot;: &quot;CriticalAddonsOnly&quot;,
+        &quot;operator&quot;: &quot;Exists&quot;
+      },
+      {
+        &quot;effect&quot;: &quot;NoExecute&quot;,
+        &quot;operator&quot;: &quot;Exists&quot;
+      }
+    ]
+  }
+}' --labels= -t -i nsenter-h3m5fy
+
+
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[NVIDIA和ubuntu踩坑]]></title>
+        <id>https://blog.volin.top/post/nvidia-he-ubuntu-cai-keng/</id>
+        <link href="https://blog.volin.top/post/nvidia-he-ubuntu-cai-keng/">
+        </link>
+        <updated>2024-06-18T01:49:19.000Z</updated>
+        <content type="html"><![CDATA[<p>十多台机器，有新有旧，搭建个测试环境，机器配置都还可以服务器裸机裸跑k8s。很快就搭建完了，刚开始还没什么问题，每个节点运行状态都很良好，英伟达驱动也正常访问，调度了一些服务上去也正常running</p>
+<p>然后周五，发现有的英伟达的驱动掉了，具体表现就是nvidia-smi报错，查看pci设备，发现报错：</p>
+<pre><code>NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+</code></pre>
+<p>这肯定是由于显卡温度过高导致的，我找it核对了下。it反馈，有几台机器是单独加的数据中心的卡，没有独立的散热风，应该是这个原因，又折腾大半天吧散热风扇加上。再跑又正常了。</p>
+<p>周五下班的时候，我还看了一眼，服务都正常运行的。周一来看，发现有k8s集群里面有个nvidia的服务一直在CrashLoopBackOff，查看日志是没有找到显卡驱动。在机器上去执行nvidia-smi，发现一直卡主，没有输出。我查看显卡是，正常的挂在设备上的,切运行状态正常：</p>
+<pre><code>3b:00.0 3D controller: NVIDIA Corporation TU104GL [Tesla T4] (rev a1)
+        Subsystem: NVIDIA Corporation TU104GL [Tesla T4]
+        Flags: bus master, fast devsel, latency 0, IRQ 379, NUMA node 0
+        Memory at b7000000 (32-bit, non-prefetchable) [size=16M]
+        Memory at 38bfc0000000 (64-bit, prefetchable) [size=256M]
+        Memory at 38bff0000000 (64-bit, prefetchable) [size=32M]
+        Capabilities: [60] Power Management version 3
+        Capabilities: [68] Null
+        Capabilities: [78] Express Endpoint, MSI 00
+        Capabilities: [c8] MSI-X: Enable+ Count=6 Masked-
+        Capabilities: [100] Virtual Channel
+        Capabilities: [258] L1 PM Substates
+        Capabilities: [128] Power Budgeting &lt;?&gt;
+        Capabilities: [420] Advanced Error Reporting
+        Capabilities: [600] Vendor Specific Information: ID=0001 Rev=1 Len=024 &lt;?&gt;
+        Capabilities: [900] Secondary PCI Express
+        Capabilities: [bb0] Resizable BAR &lt;?&gt;
+        Capabilities: [bcc] Single Root I/O Virtualization (SR-IOV)
+        Capabilities: [c14] Alternative Routing-ID Interpretation (ARI)
+        Kernel driver in use: nvidia
+        Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+
+</code></pre>
+<p>查看dmesg，有以下报错：</p>
+<pre><code>Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933321] INFO: task nvidia-sleep.sh:33710 blocked for more than 724 seconds.
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933377]       Tainted: P        W  OE     5.15.0-101-generic #111~20.04.1-Ubuntu
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933415] &quot;echo 0 &gt; /proc/sys/kernel/hung_task_timeout_secs&quot; disables this message.
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933451] task:nvidia-sleep.sh state:D stack:    0 pid:33710 ppid:     1 flags:0x00000000
+</code></pre>
+<p>看样子是再执行nvidia-sleep.sh的时候，卡住了。我执行了一下reboot，但是执行了reboot发现机器并没有重启，肯定是有什么阻断了重启，我也没多想，就<code>reboot -f</code>直接强制重启了，重启之后显卡和驱动又正常了。但是过了一会还是掉了。</p>
+<p>nvidia-sleep.sh查找了一下是nvidia的一个电源管理相关的一个脚本。具体我查找到了官方的这个链接：</p>
+<pre><code>https://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/powermanagement.html
+</code></pre>
+<p>其意思就是，为了省电节能，NVIDIA 内核驱动程序会从 Linux 内核接收回调，以挂起、休眠和恢复已注册 Linux PCI 驱动程序的每个 GPU。会吧显存里面的信息写入RAM或者是磁盘，来进行休眠。从而降低功耗。</p>
+<p>功能是没问题的，我就在想，为啥显卡会休眠呢，既然你要休眠，那我不让你显卡休眠，那不就不会触发nvidia-sleep.sh脚本了吗。</p>
+<p>于是我接着查资料，找到了一个大佬写的帖子：</p>
+<pre><code>https://leiblog.wang/%E8%B8%A9%E5%9D%91nvidia-driver/
+</code></pre>
+<p>他的症状和我很像，<code>nvidia-smi</code>会卡住十几分钟，之后输出<code>No devices were found</code>，但是执行<code>lspci | grep -i nvidia</code>还是可以看到四块显卡好好的挂在上面，这种情况应该直接 reboot 就可以修复，但是 reboot 了之后同样的程序运行一段时间之后显卡还是会掉。</p>
+<p>大佬的分析是，GPU 的驱动程序会在机器的开启时被加载，机器关闭时再被卸载。而在在没有显示器的 Linux 操作系统 (headless systems) 中，尤其是 HPC 中非常常见，GPU 的驱动程序会随着 GPU 运行的程序开始的时候自动被加载，程序关闭时自动被卸载，由于切换次数过多显卡被频繁初始化，CPU 访问 PCIe config registers 时间过长导致 softlock，从而造成 GPU 的死机。(引用自：https://bbs.gpuworld.cn/index.php?topic=10353.0)</p>
+<p>那我这个有没有是这原因导致的呢，于是我打开了显卡的持久模式：</p>
+<pre><code>sudo nvidia-smi -pm 1
+</code></pre>
+<p>再次查看<code>nvidia-smi</code>发现持久模式已经打开了，我也以为问题就这么解决了。但是泡了一会，发现还是掉驱动了。查看显卡状态依旧是正常，然后我看了下内核日志：</p>
+<pre><code>[    5.018542] NVRM: loading NVIDIA UNIX x86_64 Kernel Module  515.86.01  Wed Oct 26 09:12:38 UTC 2022
+[ 1245.745471] NVRM: GPU at PCI:0000:3b:00: GPU-9d3721a7-6efa-7184-a95a-36a9928e780f
+[ 1245.745487] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801117 0x1).
+[ 1277.641716] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1311.437934] NVRM: GPU at PCI:0000:d8:00: GPU-f276c25e-7e10-f61b-a360-9cc71dcc6174
+[ 1311.437945] NVRM: Xid (PCI:0000:d8:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1344.334220] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1464.755264] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801322 0x808).
+[ 2318.878472] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801322 0x808).
+
+
+</code></pre>
+<p><code>Timeout waiting for RPC from GSP!</code>这个报错，我在github上找到了一个帖子：</p>
+<pre><code>https://github.com/NVIDIA/open-gpu-kernel-modules/issues/446
+</code></pre>
+<p>查看了一下帖子的内容，nvidia表示 <code>GSP</code> 功能是从510版本开始引入的，但目前还没有修复。他们只给出了下面提到的禁用它的方法，或者建议我们将版本降级到&lt;510（例如470），以便更稳定。</p>
+<pre><code class="language-shell">#1、To disable GSP-RM
+sudo su -c 'echo options nvidia NVreg_EnableGpuFirmware=0 &gt; /etc/modprobe.d/nvidia-gsp.conf'
+
+#2.Enable the kernel 
+sudo update-initramfs -u
+
+#3.reboot
+#4.Check if work.
+cat /proc/driver/nvidia/params | grep EnableGpuFirmware
+
+
+</code></pre>
+<p>我按照这个指引做了，在重启下来，发现驱动、服务都正常了。</p>
+<p>但是过了一会，服务器直接掉了，ping也ping不通。我还以为是服务器挂了。冲到机房打开kvm，发现是机器休眠了！！</p>
+<pre><code>Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.454949] PM: suspend entry (s2idle)
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.457151] Filesystems sync: 0.002 seconds
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.457963] Freezing user space processes ... (elapsed 0.003 seconds) done.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.461722] OOM killer disabled.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.461725] Freezing remaining freezable tasks ... (elapsed 0.003 seconds) done.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.464889] printk: Suspending console(s) (use no_console_suspend to debug)
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.470697] serial 00:04: disabled
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.471345] serial 00:03: disabled
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.471726] eno2 speed is unknown, defaulting to 1000
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.519038] megaraid_sas 0000:af:00.0: megasas_suspend is called
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.577653] megaraid_sas 0000:af:00.0: megasas_disable_intr_fusion is called outbound_intr_mask:0x40000009
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065722] pci 0000:85:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065806] pci 0000:17:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065940] pci 0000:ae:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066011] pci 0000:d7:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066109] megaraid_sas 0000:af:00.0: megasas_resume is called
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066107] pci 0000:3a:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066114] megaraid_sas 0000:af:00.0: Waiting for FW to come to ready state
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066119] megaraid_sas 0000:af:00.0: megasas_disable_intr_fusion is called outbound_intr_mask:0x40000009
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066152] pci 0000:5d:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.067267] power_meter ACPI000D:00: Found ACPI power meter.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.070426] serial 00:03: activated
+</code></pre>
+<p>合着最终原因是在这儿。</p>
+<pre><code>sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+</code></pre>
+<p>关闭ubuntu的自动休眠，再看看驱动和服务。截至目前运行正常，再没出现掉驱动的问题。</p>
+<p>后续我猜测，是由于ubuntu本身想要休眠，于是把休眠的指令传达给了显卡，显卡休眠就执行了nvidia-sleep.sh，但是这个休眠的命令被卡主了。于是系统就处在一个正在休眠的状态中。nvidia-smi卡主没输出，reboot不生效也能印证这一点。当后面解决了nvida-sleep的卡主后，系统就能正常休眠了。</p>
+<p>1、不能太过于相信任何人，一切以自己亲自检查过为准。</p>
+<p>2、加强自己在ubuntu和nvidia驱动方面的知识，特别是休眠相关。</p>
+<p>3、对问题的思考应该多层面一点，不要只看到表面的现象，要思考深层次原理是什么。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[JuiceFS挂载minio]]></title>
+        <id>https://blog.volin.top/post/juicefs-gua-zai-minio/</id>
+        <link href="https://blog.volin.top/post/juicefs-gua-zai-minio/">
+        </link>
+        <updated>2024-01-15T08:56:01.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>引用官方文档：<a href="https://juicefs.com/docs/zh/community/introduction/">官方文档</a></p>
+<p><strong>JuiceFS</strong> 是一款面向云原生设计的高性能分布式文件系统，在 Apache 2.0 开源协议下发布。提供完备的 <a href="https://en.wikipedia.org/wiki/POSIX">POSIX</a> 兼容性，可将几乎所有对象存储接入本地作为海量本地磁盘使用，亦可同时在跨平台、跨地区的不同主机上挂载读写。</p>
+<p>JuiceFS 采用「数据」与「元数据」分离存储的架构，从而实现文件系统的分布式设计。文件数据本身会被切分保存在<a href="https://juicefs.com/docs/zh/community/reference/how_to_set_up_object_storage#supported-object-storage">对象存储</a>（例如 Amazon S3），而元数据则可以保存在 Redis、MySQL、TiKV、SQLite 等多种<a href="https://juicefs.com/docs/zh/community/databases_for_metadata">数据库</a>中，你可以根据场景与性能要求进行选择。</p>
+<p>JuiceFS 提供了丰富的 API，适用于各种形式数据的管理、分析、归档、备份，可以在不修改代码的前提下无缝对接大数据、机器学习、人工智能等应用平台，为其提供海量、弹性、低价的高性能存储。运维人员不用再为可用性、灾难恢复、监控、扩容等工作烦恼，专注于业务开发，提升研发效率。同时运维细节的简化，对 DevOps 极其友好。</p>
+</blockquote>
+<p>k8s集群的存储一直是比较难以解决的问题。将k8s的存储大致可以分为两部分，第一部分是属于存在于k8s节点上的存储方式，比如emptyDir、hostPath、local。另外一种是属于外部的存储方式，比如nfs、cephfs等以及各种兼容CSI定义的标准存储接口。</p>
+<p>在现有的计算架构下，存算分离变得越来越普遍，只用专门的硬件来负责专有的功能。扩展到云原生架构下，现有集群只负责计算，存储等功能则有外部存储来负责。放到具体的例子就是，对于容器化部署的数据库，数据应该如何存储？贪图容器化部署数据库的可扩展和故障恢复等优点，但是又担心数据库数据丢失等风险。</p>
+<p>当前我使用最多的是方式是hostPath，因为业务单机部署，恢复备份都十分方便。直接使用一个yaml能快速拉起一个能用的数据库。但是这仅限于单体架构或者测试情况下。当集群复杂度上升之后，这种使用hostPath的将面临：容器只能在指定节点、hostPath容易成为容器逃逸和攻击的方式等问题。这就需要探索其他的存储方式。</p>
+<p>在尝试过程中，调研到了JuiceFS这一个兼容很多后端存储方式的存储系统。</p>
+<p>JuiceFS使用元数据和数据分开存储的方式，来兼容minio、hdfs等后端存储，以及将后端储存POSIX 兼容的方式挂载到服务器，将海量云端存储直接当做本地存储来使用。</p>
+<p>JuiceFS的客户端主要用于数据的文件读写以及和数据存储和元数据存储沟通的功能。数据存储则是可以使用hdfs、minio、各大云厂商的对象存储等功能，用于将数据分块进行存储。元数据存储支持使用redis、mysql、pgsql、tikv等主流数据库，用于存放文件的元数据。</p>
+<p>基本架构如下图：</p>
+<figure data-type="image" tabindex="1"><img src="https://juicefs.com/docs/zh/assets/images/juicefs-arch-52477e7677b23c870b72f08bb28c7ceb.svg" alt="JuiceFS-arch" loading="lazy"></figure>
+<p>由于我只是验证可行性，于是我使用了k3s单节点。k3s二进制部署JuiceFS客户端用于交互，k3s部署minio，来充当后端存储服务器，使用k3s部署redis，当做元数据存储。</p>
+<pre><code>root@mqj-server:~# kubectl  get po -n middleware
+NAME                     READY   STATUS    RESTARTS   AGE
+minio-6d54598b6b-bqqd7   1/1     Running   0          5h7m
+redis-7f8c6f7c56-5nl2k   1/1     Running   0          92m
+
+root@mqj-server:~# whereis juicefs
+juicefs: /usr/local/bin/juicefs
+</code></pre>
+<p>首先生成块文件：</p>
+<pre><code>juicefs format \
+    --storage minio \
+    --bucket http://192.168.7.243:39000/test111 \
+    --access-key ACh5Jnh4CTxeg9DK3BAN33Pt \
+    --secret-key AKJKSARUuMarPPcVE5KZBX54TB79bMBJdR2E \
+    &quot;redis://:redis123@192.168.7.243:36479/1&quot; \
+    jfs
+     
+</code></pre>
+<pre><code>
+2024/01/15 08:13:19.904272 juicefs[2284846] &lt;INFO&gt;: Meta address: redis://:****@192.168.7.243:36479/1 [interface.go:497]
+2024/01/15 08:13:19.905388 juicefs[2284846] &lt;WARNING&gt;: AOF is not enabled, you may lose data if Redis is not shutdown properly. [info.go:84]
+2024/01/15 08:13:19.905648 juicefs[2284846] &lt;INFO&gt;: Ping redis latency: 163.175µs [redis.go:3593]
+2024/01/15 08:13:19.906072 juicefs[2284846] &lt;INFO&gt;: Data use minio://192.168.7.243:39000/test111/jfs/ [format.go:471]
+2024/01/15 08:13:19.918108 juicefs[2284846] &lt;INFO&gt;: Volume is formatted as {
+  &quot;Name&quot;: &quot;jfs&quot;,
+  &quot;UUID&quot;: &quot;a1b9b273-6571-4538-b2ab-b703f7839fe4&quot;,
+  &quot;Storage&quot;: &quot;minio&quot;,
+  &quot;Bucket&quot;: &quot;http://192.168.7.243:39000/test111&quot;,
+  &quot;AccessKey&quot;: &quot;ACh5Jnh4CTxeg9DK3BAN33Pt&quot;,
+  &quot;SecretKey&quot;: &quot;removed&quot;,
+  &quot;BlockSize&quot;: 4096,
+  &quot;Compression&quot;: &quot;none&quot;,
+  &quot;EncryptAlgo&quot;: &quot;aes256gcm-rsa&quot;,
+  &quot;KeyEncrypted&quot;: true,
+  &quot;TrashDays&quot;: 1,
+  &quot;MetaVersion&quot;: 1,
+  &quot;MinClientVersion&quot;: &quot;1.1.0-A&quot;,
+  &quot;DirStats&quot;: true
+} [format.go:508]
+</code></pre>
+<p>然后将已经生成好的块文件挂载到本地目录<code>~/jfs</code>。</p>
+<pre><code class="language-shell">juicefs mount -d -o allow_other,writeback_cache redis://:redis123@192.168.7.243:36479/1  ~/jfs
+</code></pre>
+<p><code>df -TH |grep jfs</code>可以查看挂载情况</p>
+<pre><code>root@mqj-server:~# df -TH |grep jfs
+JuiceFS:jfs                       fuse.juicefs  1.2P  246M  1.2P   1% /root/jfs
+</code></pre>
+<p>可以看到/root/jfs已经挂载上了。</p>
+<p>我们新建一个mysql的，使用hostPath吧数据目录挂载到/root/jfs中。</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+  clusterIP: None
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: yourpassword # Change this to your desired root password
+        - name: MYSQL_DATABASE
+          value: mydatabase # Optional: specify a database to be created
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        hostPath:
+          path: /root/jfs/mysql # Change this to your desired host directory
+          type: DirectoryOrCreate
+
+</code></pre>
+<p>发现服务可以正常启动，我们查看对应目录，发现有mysql运行文件存在：</p>
+<pre><code class="language-shell">root@mqj-server:~/jfs/mysql# ll
+total 188455
+drwxr-xr-x 6 systemd-coredump root                 4096 Jan 15 08:28 ./
+drwxrwxrwx 4 root             root                 4096 Jan 15 06:51 ../
+-rw-r----- 1 systemd-coredump systemd-coredump       56 Jan 15 06:52 auto.cnf
+-rw------- 1 systemd-coredump systemd-coredump     1680 Jan 15 06:52 ca-key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 ca.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 client-cert.pem
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 client-key.pem
+-rw-r----- 1 systemd-coredump systemd-coredump      682 Jan 15 08:08 ib_buffer_pool
+-rw-r----- 1 systemd-coredump systemd-coredump 79691776 Jan 15 08:28 ibdata1
+-rw-r----- 1 systemd-coredump systemd-coredump 50331648 Jan 15 08:28 ib_logfile0
+-rw-r----- 1 systemd-coredump systemd-coredump 50331648 Jan 15 06:52 ib_logfile1
+-rw-r----- 1 systemd-coredump systemd-coredump 12582912 Jan 15 08:28 ibtmp1
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 mydatabase/
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 mysql/
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 performance_schema/
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 private_key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump      452 Jan 15 06:52 public_key.pem
+-rw-r--r-- 1 systemd-coredump systemd-coredump     1112 Jan 15 06:52 server-cert.pem
+-rw------- 1 systemd-coredump systemd-coredump     1676 Jan 15 06:52 server-key.pem
+drwxr-x--- 2 systemd-coredump systemd-coredump     4096 Jan 15 06:52 sys/
+root@mqj-server:~/jfs/mysql# pwd
+/root/jfs/mysql
+root@mqj-server:~/jfs/mysql#
+</code></pre>
+<p>我们查看minio存储的目录，发现存在有对应的块文件。</p>
+<pre><code class="language-shell">root@mqj-server:/data/minio/test111/jfs# ls
+chunks  juicefs_uuid  meta
+root@mqj-server:/data/minio/test111/jfs#
+root@mqj-server:/data/minio/test111/jfs#
+root@mqj-server:/data/minio/test111/jfs# pwd
+/data/minio/test111/jfs
+root@mqj-server:/data/minio/test111/jfs#
+</code></pre>
+<p>检查redis键值对：</p>
+<figure data-type="image" tabindex="2"><img src="http://lsky.volin.top/i/2024/01/15/65a4f1ac389fb.png" alt="1705308583115.png" loading="lazy"></figure>
+<p>成功验证，使用minio来存储mysql的数据。</p>
+<p>但是本方案是可行性，但是维护需要更多的维护一个redis和minio，如果当redis或者其他的元数据存储介质丢失的情况，可能会造成无法挽回的数据丢失。如果使用此方式，应当充分考虑元存储、数据存储等组件的健壮程度，以及做好数据备份以备不时之需。</p>
+<p>官方那个提供了兼容k8s的CSI组件来进行容器化部署，后续再进行验证和更新。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[记一次coredns解析故障]]></title>
+        <id>https://blog.volin.top/post/coredns-error/</id>
+        <link href="https://blog.volin.top/post/coredns-error/">
+        </link>
+        <updated>2023-10-09T06:16:06.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="现象coredns链接apiserver失败">现象：coredns链接apiserver失败：</h2>
+<pre><code class="language-shell">[INFO] plugin/ready: Still waiting on: &quot;kubernetes&quot;
+[INFO] plugin/ready: Still waiting on: &quot;kubernetes&quot;
+[WARNING] plugin/kubernetes: Kubernetes API connection failure: Get &quot;https://10.68.0.1:443/version&quot;: dial tcp 10.68.0.1:443: i/o timeout
+
+</code></pre>
+<h2 id="排查过程">排查过程</h2>
+<p>查看k8s的apiserver的状态：<br>
+kubectl   get svc</p>
+<pre><code>NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.68.0.1    &lt;none&gt;        443/TCP   172m
+
+</code></pre>
+<p>在宿主机上去去访问apiserver的地址：</p>
+<pre><code>root@industai-sxyq:/opt#curl  10.68.0.1:443
+404 page not found
+
+root@industai-sxyq:/opt#ping  10.68.0.1
+PING 10.68.0.1 (10.68.0.1) 56(84) bytes of data.
+64 bytes from 10.68.0.1: icmp_seq=1 ttl=64 time=0.107 ms
+64 bytes from 10.68.0.1: icmp_seq=2 ttl=64 time=0.085 ms
+</code></pre>
+<p>怀疑是iptables转发的问题，查看iptables，但是机器上并没有iptables命令，这就很奇怪。</p>
+<pre><code>(base) root@industai-sxyq:/opt# ipt
+iptables-apply    iptables-restore  iptables-save     iptables-xml   
+(base) root@industai-sxyq:/opt# ipt
+</code></pre>
+<p>使用apt 安装iptables。限制iptables已安装。只能使用<code>apt-get install --reinstall iptables  </code> 重新安装iptabels。</p>
+<pre><code>(base) root@industai-sxyq:/opt# apt install iptables
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+iptables is already the newest version (1.6.1-2ubuntu2.1).
+The following packages were automatically installed and are no longer required:
+  ieee-data python-certifi python-chardet python-jmespath python-kerberos python-libcloud python-lockfile python-netaddr python-openssl python-requests
+  python-selinux python-simplejson python-urllib3 python-xmltodict
+Use 'apt autoremove' to remove them.
+0 upgraded, 0 newly installed, 0 to remove and 10 not upgraded.
+</code></pre>
+<p>重新安装iptables之后，iptables命令重新出现了。看来问题就在这里。于是清除了iptables规则<code>iptables -F</code><br>
+清楚之后，重启了k3s。重启之后，k3s重建了iptables规则。而且coredns可以正常启动啦。</p>
+<h2 id="新的问题">新的问题</h2>
+<p>本以为问题就这样解决了，发现其他的pod根本不能访问coredns进行dns解析。<br>
+检查了flaanel的运行状态，发现flannel和cni0网卡都在。</p>
+<p>通过tcp抓cni0网卡的包发现：</p>
+<pre><code>11:44:20.643974 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275158535 ecr 0,nop,wscale 7], length 0
+11:44:21.665944 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275159557 ecr 0,nop,wscale 7], length 0
+11:44:23.681946 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275161573 ecr 0,nop,wscale 7], length 0
+11:44:25.825941 ARP, Request who-has industai-sxyq tell 10.58.0.172, length 28
+11:44:27.873945 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275165765 ecr 0,nop,wscale 7], length 0
+11:44:36.065944 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275173957 ecr 0,nop,wscale 7], length 0
+11:44:52.193949 IP 10.58.0.172.57526 &gt; 10.58.0.192.domain: Flags [S], seq 2885522300, win 64860, options [mss 1410,sackOK,TS val 4275190085 ecr 0,nop,wscale 7], length 0
+11:44:57.313946 ARP, Request who-has industai-sxyq tell 10.58.0.172, length 28
+</code></pre>
+<p>查看k3s得网络模式，是使用的ipvs，</p>
+<pre><code>ExecStart=/usr/local/bin/k3s \
+    server \
+	'--disable=traefik' \
+	'--disable=coredns' \
+	'--data-dir=/data/rancher/k3s' \
+	'--service-cidr=10.68.0.0/16' \
+	'--cluster-cidr=10.58.0.0/16' \
+	'--cluster-dns=10.68.0.2' \
+	'--cluster-domain=cluster.local.' \
+	'--flannel-backend=vxlan' \
+	'--kubelet-arg=topology-manager-policy=single-numa-node' \
+	'--kubelet-arg=cpu-manager-policy=static' \
+	'--kubelet-arg=kube-reserved=cpu=1' \
+	'--kube-apiserver-arg=service-node-port-range=20000-40000' \
+	'--kube-apiserver-arg=authorization-mode=Node,RBAC' \
+	'--kube-apiserver-arg=allow-privileged=true' \
+	'--kube-proxy-arg=proxy-mode=ipvs' \
+	'--kube-proxy-arg=masquerade-all=true' \
+	'--kube-proxy-arg=metrics-bind-address=0.0.0.0' \
+	 '--kube-scheduler-arg=config=/etc/rancher/k3s/scheduler-policy-config.yaml'
+     ```
+
+
+在网上排查找了个帖子`https://ask.kubesphere.io/forum/d/4699-k8s-pod-ping-kubesphere-devops/52`，感觉和我的抓包结果很像，发出去了包但是没有回应。
+怀疑是自己系统的ipv4转发有什么问题，于是重新配置了`/etc/sysctl.conf`
+重新apply之后，发现还是一样。无法访问coredns。
+     ```
+     vm.swappiness=0
+net.core.rmem_default=256960
+net.core.rmem_max=16777216
+net.core.wmem_default=256960
+net.core.wmem_max=16777216
+net.core.netdev_max_backlog=2000
+net.core.somaxconn=65535
+net.core.optmem_max=81920
+net.ipv4.tcp_mem=8388608  12582912  16777216
+net.ipv4.tcp_rmem=8192  87380  16777216
+net.ipv4.tcp_wmem=8192  65536  16777216
+net.ipv4.tcp_keepalive_time=180
+net.ipv4.tcp_keepalive_intvl=30
+net.ipv4.tcp_keepalive_probes=3
+net.ipv4.tcp_sack=1
+net.ipv4.tcp_fack=1
+net.ipv4.tcp_window_scaling=1
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_tw_reuse=1
+net.ipv4.tcp_tw_recycle=0
+net.ipv4.tcp_fin_timeout=10
+net.ipv4.tcp_max_syn_backlog=100000
+fs.file-max=1100000
+fs.nr_open=1100000
+fs.inotify.max_user_watches=524288
+kernel.pid_max=655350
+</code></pre>
+<p>后来还发现一个奇怪的现象，其实pod里面不能访问的只有coredns的10.68.0.2这个ip、pod的ip以及外部的ip，其他k8s的service都可以访问。这就很奇怪了。<br>
+其中还做过的操作包括但不限于：重建路由规则，清除iptables，把k3s的运行模式从ipvs改到iptables，升级k3s从1.23升级到1.25，均无法解决。<br>
+但是基本能确定，问题就是出在ipvs和iptables上。无奈，知识不够，无法分析到具体原因。</p>
+<h2 id="故障解决">故障解决</h2>
+<p>于是，清理了已经部署的k3s，然后重启了机器，重新安装k3s 1.25版本，重启之后进行安装，ansible脚本对系统配置进行了以下修改：</p>
+<pre><code>- name: Disable daily security update
+  remote_user: root
+  become: yes
+  shell: &quot;{{ item }}&quot;
+  with_items:
+    - &quot;systemctl kill --kill-who=all apt-daily.service&quot;
+    - &quot;systemctl stop apt-daily.timer&quot;
+    - &quot;systemctl stop apt-daily-upgrade.timer&quot;
+    - &quot;systemctl stop apt-daily.service&quot;
+    - &quot;systemctl stop apt-daily-upgrade.service&quot;
+    - &quot;systemctl disable apt-daily.timer&quot;
+    - &quot;systemctl disable apt-daily-upgrade.timer&quot;
+    - &quot;systemctl disable apt-daily.service&quot;
+    - &quot;systemctl disable apt-daily-upgrade.service&quot;
+  when: ansible_os_family == &quot;Debian&quot;
+  ignore_errors: True
+  tags: init_env
+
+#- name: create user
+#  user: name={{ item }} shell=/bin/bash createhome=yes
+#  with_items:
+#    - &quot;{{ username }}&quot;
+#    - &quot;readonly&quot;
+#  tags: create_user
+
+
+- name: Set limits
+  pam_limits:
+      dest: &quot;{{ item.dest }}&quot;
+      domain: '*'
+      limit_type: &quot;{{ item.limit_type }}&quot;
+      limit_item: &quot;{{ item.limit_item }}&quot;
+      value: &quot;{{ item.value }}&quot;
+  with_items:
+      - { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'nofile', value: '655350' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'nofile', value: '655350'}
+      #- { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'nproc', value: '102400' }
+      #- { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'nproc', value: '102400' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'soft',limit_item: 'sigpending', value: '255377' }
+      - { dest: '/etc/security/limits.conf',limit_type: 'hard',limit_item: 'sigpending', value: '255377' }
+      - { dest: '/etc/security/limits.d/90-nproc.conf', limit_type: 'soft',limit_item: 'nproc', value: '262144' }
+      - { dest: '/etc/security/limits.d/90-nproc.conf', limit_type: 'hard',limit_item: 'nproc', value: '262144' }
+  tags: init_env
+
+- sysctl:
+    name: &quot;{{ item.name }}&quot;
+    value: &quot;{{ item.value}}&quot;
+    state: present
+    reload: yes
+  with_items:
+    - { name: 'vm.swappiness', value: '0'}
+    - { name: 'net.core.rmem_default ',value: '256960'}
+    - { name: 'net.core.rmem_max',value: '16777216'}
+    - { name: 'net.core.wmem_default',value: '256960'}
+    - { name: 'net.core.wmem_max ',value: '16777216'}
+    - { name: 'net.core.netdev_max_backlog ',value: '2000'}
+    - { name: 'net.core.somaxconn',value: '65535'}
+    - { name: 'net.core.optmem_max',value: '81920'}
+    - { name: 'net.ipv4.tcp_mem',value: '8388608  12582912  16777216'}
+    - { name: 'net.ipv4.tcp_rmem',value: '8192  87380  16777216'}
+    - { name: 'net.ipv4.tcp_wmem',value: '8192  65536  16777216'}
+    - { name: 'net.ipv4.tcp_keepalive_time',value: '180'}
+    - { name: 'net.ipv4.tcp_keepalive_intvl',value: '30'}
+    - { name: 'net.ipv4.tcp_keepalive_probes',value: '3'}
+    - { name: 'net.ipv4.tcp_sack',value: '1'}
+    - { name: 'net.ipv4.tcp_fack',value: '1'}
+    - { name: 'net.ipv4.tcp_window_scaling',value: '1'}
+    - { name: 'net.ipv4.tcp_syncookies',value: '1'}
+    - { name: 'net.ipv4.tcp_tw_reuse',value: '1'}
+    - { name: 'net.ipv4.tcp_tw_recycle',value: '0'}
+    - { name: 'net.ipv4.tcp_fin_timeout',value: '10'}
+    #- { name: 'net.ipv4.ip_local_port_range',value: '1024  65000'}
+    - { name: 'net.ipv4.tcp_max_syn_backlog',value: '100000'}
+    - { name: 'fs.file-max',value: '1100000'}
+    - { name: 'fs.nr_open',value: '1100000'}
+    - { name: 'fs.inotify.max_user_watches', value: '524288' }
+    - { name: 'kernel.pid_max', value: '655350' }
+  ignore_errors: True
+  tags: init_env
+</code></pre>
+<p>安装成功后，发现coredns依旧无法启动，但是查看内核日志：</p>
+<pre><code>11月 08 10:07:06 industai-sxyq k3s[1867]: E1108 10:07:06.376295    1867 proxier.go:1562] &quot;Failed to execute iptables-restore&quot; err=&lt;
+11月 08 10:07:06 industai-sxyq k3s[1867]:         exit status 1: iptables-restore: invalid option -- 'w'
+11月 08 10:07:06 industai-sxyq k3s[1867]:         iptables-restore: invalid option -- 'W'
+11月 08 10:07:06 industai-sxyq k3s[1867]:         Unknown arguments found on commandline
+11月 08 10:07:06 industai-sxyq k3s[1867]:  &gt; rules=&lt;
+11月 08 10:07:06 industai-sxyq k3s[1867]:         *nat
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-SERVICES - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-POSTROUTING - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-NODE-PORT - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-LOAD-BALANCER - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-MARK-MASQ - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m comment --comment &quot;Kubernetes endpoints dst ip:port, source ip for solving hairpin purpose&quot; -m set --match-se
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-NODE-PORT -p tcp -m comment --comment &quot;Kubernetes nodeport TCP port for masquerade purpose&quot; -m set --match-set KUBE-NODE-POR
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m comment --comment &quot;Kubernetes service cluster ip + port for masquerade purpose&quot; -m set --match-set KUBE-CLUSTER-
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m addrtype --dst-type LOCAL -j KUBE-NODE-PORT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-LOAD-BALANCER -j KUBE-MARK-MASQ
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SERVICES -m set --match-set KUBE-CLUSTER-IP dst,dst -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m mark ! --mark 0x00004000/0x00004000 -j RETURN
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -j MARK --xor-mark 0x00004000
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-POSTROUTING -m comment --comment &quot;kubernetes service traffic requiring SNAT&quot; -j MASQUERADE --random-fully
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-MARK-MASQ -j MARK --or-mark 0x00004000
+11月 08 10:07:06 industai-sxyq k3s[1867]:         COMMIT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         *filter
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-FORWARD - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-NODE-PORT - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-PROXY-FIREWALL - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         :KUBE-SOURCE-RANGES-FIREWALL - [0:0]
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-SOURCE-RANGES-FIREWALL -j DROP
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-FORWARD -m comment --comment &quot;kubernetes forwarding rules&quot; -m mark --mark 0x00004000/0x00004000 -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-FORWARD -m comment --comment &quot;kubernetes forwarding conntrack rule&quot; -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+11月 08 10:07:06 industai-sxyq k3s[1867]:         -A KUBE-NODE-PORT -m comment --comment &quot;Kubernetes health check node port&quot; -m set --match-set KUBE-HEALTH-CHECK-NODE-PORT dst -j ACC
+11月 08 10:07:06 industai-sxyq k3s[1867]:         COMMIT
+11月 08 10:07:06 industai-sxyq k3s[1867]:  &gt;
+</code></pre>
+<p>iptables-restore没有-w这个选项，但是我用的模式是ipvs啊。同时iptables命令又没了。<br>
+查看内核日志：</p>
+<pre><code>kernel: [569918.603973] IPVS: rr: UDP 10.68.0.2:53 - no destination available
+</code></pre>
+<p>结合上一条没有，应该是iptables的问题。<code>apt-get install --reinstall iptables  </code> 重新安装iptables，再重启k3s，再次查看，coredns正常启动，再进pod尝试dns解析，发现pod内解析正常，也能正常访问pod的ip。查看k3s日志和内核日志，均无报错。<br>
+开发反馈服务正常了。</p>
+<h2 id="问题">问题</h2>
+<p>虽然问题就这么解决了，但是我有点想不通。自己还是太菜了。</p>
+<ul>
+<li>1、为啥这个系统重启后iptables会消失？</li>
+<li>2、是什么导致的无法访问coredns的services和pod？</li>
+<li>3、为啥ipvs模式会使用iptables的命令？ipvs和iptables有什么区别？</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s deploy etcd]]></title>
+        <id>https://blog.volin.top/post/k8s-deploy-etcd/</id>
+        <link href="https://blog.volin.top/post/k8s-deploy-etcd/">
+        </link>
+        <updated>2023-08-07T07:17:42.000Z</updated>
+        <content type="html"><![CDATA[<pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: etcd
+  name: etcd
+  namespace: middleware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+        - env:
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: &quot;yes&quot;
+            - name: &quot;ETCD_ROOT_PASSWORD&quot;
+              value: &quot;&quot;
+            - name: &quot;ETCD_ADVERTISE_CLIENT_URLS&quot;
+              value: &quot;http://0.0.0.0:2379&quot;
+            - name: &quot;ETCD_LISTEN_PEER_URLS&quot;
+              value: &quot;http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_INITIAL_ADVERTISE_PEER_URLS&quot;
+              value: &quot;http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_INITIAL_CLUSTER&quot;
+              value: &quot;defualt=http://0.0.0.0:2380&quot;
+            - name: &quot;ETCD_NAME&quot;
+              value: &quot;&quot;
+            - name: &quot;ETCD_DATA_DIR&quot;
+              value: &quot;/opt/bitnami/etcd/data&quot;
+          image: bitnami/etcd
+          securityContext:
+            privileged: true
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          volumeMounts:
+            - mountPath: /opt/bitnami/etcd/data
+              name: volv2
+      volumes:
+        - hostPath:
+            path: /root/k8s/moonfdd/etcd/opt/bitnami/etcd/data
+            type: DirectoryOrCreate
+          name: volv2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: etcd
+  name: etcd
+  namespace: middleware
+spec:
+  ports:
+    - port: 2379
+      protocol: TCP
+      targetPort: 2379
+      name: 2379-2379
+    - port: 2380
+      protocol: TCP
+      targetPort: 2380
+      name: 2380-2380
+  selector:
+    app: etcd
+  type: NodePort
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[docker部署mysql主从]]></title>
+        <id>https://blog.volin.top/post/docker-deploy-mysql-slave/</id>
+        <link href="https://blog.volin.top/post/docker-deploy-mysql-slave/">
+        </link>
+        <updated>2023-07-03T02:36:13.000Z</updated>
+        <summary type="html"><![CDATA[<p>如题</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>如题</p>
+<!-- more -->
+<h2 id="1拉取镜像">1.拉取镜像</h2>
+<pre><code>docker pull mysql:5.7
+</code></pre>
+<h2 id="2创建目录">2.创建目录</h2>
+<pre><code>mkdir -p /opt/mysql/data
+mkdir -p /opt/mysql/log
+mkdir -p /opt/mysql/conf
+chmod 777 -R /opt/mysql/log
+</code></pre>
+<h2 id="3创建mysql配置文件">3.创建mysql配置文件</h2>
+<pre><code>vim /opt/mysql/conf/my.cnf
+</code></pre>
+<h2 id="4启动">4.启动</h2>
+<pre><code>docker run -dit -p 3306:3306 -e TZ=Asia/Shanghai  --privileged=true --name mysql_master  -v  /opt/mysql/conf/my.cnf:/etc/my.cnf  -v /opt/mysql/data:/var/lib/mysql -v /opt/mysql/log:/var/log/mysql -e MYSQL_ROOT_PASSWORD=123456 mysql:5.7
+
+docker run -dit -p 3306:3306 -e TZ=Asia/Shanghai   --privileged=true --name mysql_slave -v  /opt/mysql/conf/my.cnf:/etc/my.cnf  -v /opt/mysql/data:/var/lib/mysql -v /opt/mysql/log:/var/log/mysql -e MYSQL_ROOT_PASSWORD=123456 mysql:5.7
+
+单节点
+docker run -dit -p 3306:3306 -e TZ=Asia/Shanghai  --privileged=true --name mysql  -v  /opt/mysql/conf/my.cnf:/etc/mysql/my.cnf  -v /opt/mysql/data:/var/lib/mysql -v /opt/mysql/log:/var/log/mysql -e MYSQL_ROOT_PASSWORD=thundersoft mysql:5.7
+</code></pre>
+<h2 id="5验证数据目录日志等">5.验证，数据目录，日志等</h2>
+<pre><code>mysql -u -p
+查看时区
+	select now();
+	show variables like '%time_zone%';
+</code></pre>
+<h2 id="6创建同步用户">6.创建同步用户</h2>
+<pre><code>create user 'repl'@'%' identified by 'repl';
+grant replication slave,replication client on *.* to 'repl'@'%';
+flush privileges;
+</code></pre>
+<h2 id="7-设置主主">7. 设置主主</h2>
+<pre><code> show master status;
+
+
+change master to
+master_user='repl',
+master_password='repl', 
+master_host='172.18.3.186', 
+master_log_file='mysql-bin.000003', 
+master_log_pos=782,
+master_port=3306;
+
+change master to
+master_user='repl',
+master_password='repl', 
+master_host='172.18.3.187', 
+master_log_file='mysql-bin.000003', 
+master_log_pos=782,
+master_port=3306;
+</code></pre>
+<h2 id="8启动主从">8.启动主从</h2>
+<pre><code>start slave;
+show slave status \G
+</code></pre>
+<h2 id="更新">更新</h2>
+<p>因为需要监控zabbix,需要获取mysqld.sock文件，因此进行更新</p>
+<h4 id="1新建目录">1.新建目录</h4>
+<pre><code>mkdir -p /opt/mysql/run/mysqld
+</code></pre>
+<!-- more -->
+<pre><code>chown -R mysql.mysql /opt/mysql/run
+chmod 777 -R /opt/mysql/run
+</code></pre>
+<h4 id="2配置文件更新且挂载位置需要更新注意配置文件">2.配置文件更新，且挂载位置需要更新(注意配置文件)</h4>
+<pre><code>2.1更新sock文件位置
+启动挂载目录更新  /opt/mysql/conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+
+docker run -dit -p 3306:3306 --privileged=true --name mysql-master-new  -v  /opt/mysql/conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf  -v /opt/mysql/data:/var/lib/mysql -v /opt/mysql/log:/var/log/mysql -v /opt/mysql/run/mysqld:/var/run/mysqld -e MYSQL_ROOT_PASSWORD=123456 mysql:5.7
+</code></pre>
+<h2 id="附录">附录</h2>
+<h4 id="1-mycnf">1、my.cnf</h4>
+<pre><code>[mysqld]
+user=root
+default-time-zone='+8:00'
+port = 3306
+pid-file	= /var/run/mysqld/mysqld.pid
+socket		= /var/run/mysqld/mysqld.sock
+datadir=/var/lib/mysql
+log-error=/var/log/mysql/error.log
+bind-address = 0.0.0.0
+
+[client]
+default-character-set=utf8
+[mysql]
+default-character-set=utf8
+
+</code></pre>
+<h4 id="2-mycnf-master">2、my.cnf-master</h4>
+<pre><code>[mysql]
+prompt=&quot;MySQL [\d]&gt; &quot;
+no-auto-rehash
+
+[mysqld]
+default-time-zone='+8:00'
+log-bin=mysql-bin
+server-id=1
+#gtid_mode=ON
+#enforce-gtid-consistency=true
+relay-log-index=slave-relay-bin.index
+relay-log=slave-relay-bin
+
+auto_increment_increment=2
+auto_increment_offset=1
+
+log-bin-trust-function-creators=1
+local-infile = 0
+#skip-grant-tables
+
+port = 3306
+pid-file	= /var/run/mysqld/mysqld.pid
+socket		= /var/run/mysqld/mysqld.sock
+
+datadir=/var/lib/mysql
+log-error=/var/log/mysql/error.log
+bind-address = 0.0.0.0
+
+init-connect = 'SET NAMES utf8mb4'
+character-set-server = utf8mb4
+lower_case_table_names=1
+log_bin_trust_function_creators=1
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+skip-name-resolve
+#skip-networking
+back_log = 300
+
+max_connections = 2000
+max_connect_errors = 6000
+open_files_limit = 65535
+table_open_cache = 1024
+max_allowed_packet = 500M
+binlog_cache_size = 1M
+max_heap_table_size = 8M
+tmp_table_size = 128M
+
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 8M
+join_buffer_size = 8M
+key_buffer_size = 256M
+
+thread_cache_size = 64
+
+query_cache_type = 1
+query_cache_size = 128M
+query_cache_limit = 4M
+
+ft_min_word_len = 4
+
+binlog_format = mixed
+expire_logs_days = 7
+
+#slow_query_log = 1
+#long_query_time = 1
+#slow_query_log_file = /tmp/mysql-slow.log
+
+performance_schema = 0
+explicit_defaults_for_timestamp
+
+#lower_case_table_names = 1
+
+skip-external-locking
+
+default_storage_engine = InnoDB
+#default-storage-engine = MyISAM
+innodb_file_per_table = 1
+innodb_open_files = 500
+innodb_buffer_pool_size = 1024M
+innodb_write_io_threads = 4
+innodb_read_io_threads = 4
+innodb_thread_concurrency = 0
+innodb_purge_threads = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 2M
+innodb_log_file_size = 32M
+innodb_log_files_in_group = 3
+innodb_max_dirty_pages_pct = 90
+innodb_lock_wait_timeout = 120
+
+bulk_insert_buffer_size = 8M
+myisam_sort_buffer_size = 64M
+myisam_max_sort_file_size = 10G
+myisam_repair_threads = 1
+
+interactive_timeout = 86400
+wait_timeout = 86400
+
+[mysqldump]
+quick
+max_allowed_packet = 500M
+
+[myisamchk]
+key_buffer_size = 256M
+sort_buffer_size = 8M
+read_buffer = 4M
+write_buffer = 4M
+</code></pre>
+<h4 id="3-mycnf-slave">3、my.cnf-slave</h4>
+<pre><code>[mysql]
+prompt=&quot;MySQL [\d]&gt; &quot;
+no-auto-rehash
+
+[mysqld]
+default-time-zone='+8:00'
+log-bin=mysql-bin
+server-id=2
+#gtid_mode=ON
+#enforce-gtid-consistency=true
+relay-log-index=slave-relay-bin.index
+relay-log=slave-relay-bin
+
+auto_increment_increment=2
+auto_increment_offset=2
+
+log-bin-trust-function-creators=1
+local-infile = 0
+#skip-grant-tables
+
+port = 3306
+pid-file	= /var/run/mysqld/mysqld.pid
+socket		= /var/run/mysqld/mysqld.sock
+
+datadir=/var/lib/mysql
+log-error=/var/log/mysql/error.log
+bind-address = 0.0.0.0
+
+init-connect = 'SET NAMES utf8mb4'
+character-set-server = utf8mb4
+lower_case_table_names=1
+log_bin_trust_function_creators=1
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+skip-name-resolve
+#skip-networking
+back_log = 300
+
+max_connections = 2000
+max_connect_errors = 6000
+open_files_limit = 65535
+table_open_cache = 1024
+max_allowed_packet = 500M
+binlog_cache_size = 1M
+max_heap_table_size = 8M
+tmp_table_size = 128M
+
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 8M
+join_buffer_size = 8M
+key_buffer_size = 256M
+
+thread_cache_size = 64
+
+query_cache_type = 1
+query_cache_size = 128M
+query_cache_limit = 4M
+
+ft_min_word_len = 4
+
+binlog_format = mixed
+expire_logs_days = 7
+
+#slow_query_log = 1
+#long_query_time = 1
+#slow_query_log_file = /tmp/mysql-slow.log
+
+performance_schema = 0
+explicit_defaults_for_timestamp
+
+#lower_case_table_names = 1
+
+skip-external-locking
+
+default_storage_engine = InnoDB
+#default-storage-engine = MyISAM
+innodb_file_per_table = 1
+innodb_open_files = 500
+innodb_buffer_pool_size = 1024M
+innodb_write_io_threads = 4
+innodb_read_io_threads = 4
+innodb_thread_concurrency = 0
+innodb_purge_threads = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 2M
+innodb_log_file_size = 32M
+innodb_log_files_in_group = 3
+innodb_max_dirty_pages_pct = 90
+innodb_lock_wait_timeout = 120
+
+bulk_insert_buffer_size = 8M
+myisam_sort_buffer_size = 64M
+myisam_max_sort_file_size = 10G
+myisam_repair_threads = 1
+
+interactive_timeout = 86400
+wait_timeout = 86400
+
+[mysqldump]
+quick
+max_allowed_packet = 500M
+
+[myisamchk]
+key_buffer_size = 256M
+sort_buffer_size = 8M
+read_buffer = 4M
+write_buffer = 4M
+</code></pre>
+<h4 id="4-mysqldcnf">4、mysqld.cnf</h4>
+<pre><code>[mysql]
+prompt=&quot;MySQL [\d]&gt; &quot;
+no-auto-rehash
+port        = 3306
+socket      = /opt/mysql/run/mysqld/mysqld.sock
+user=zabbix
+password=zabbix
+
+
+
+[mysqld]
+default-time-zone='+8:00'
+log-bin=mysql-bin
+server-id=1
+#gtid_mode=ON
+#enforce-gtid-consistency=true
+relay-log-index=slave-relay-bin.index
+relay-log=slave-relay-bin
+
+auto_increment_increment=2
+auto_increment_offset=1
+
+log-bin-trust-function-creators=1
+local-infile = 0
+#skip-grant-tables
+
+port = 3306
+pid-file	= /opt/mysql/run/mysqld/mysqld.pid
+socket		= /opt/mysql/run/mysqld/mysqld.sock
+
+datadir=/var/lib/mysql
+log-error=/var/log/mysql/error.log
+bind-address = 0.0.0.0
+
+init-connect = 'SET NAMES utf8mb4'
+character-set-server = utf8mb4
+lower_case_table_names=1
+log_bin_trust_function_creators=1
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+skip-name-resolve
+#skip-networking
+back_log = 300
+
+max_connections = 2000
+max_connect_errors = 6000
+open_files_limit = 65535
+table_open_cache = 1024
+max_allowed_packet = 500M
+binlog_cache_size = 1M
+max_heap_table_size = 8M
+tmp_table_size = 128M
+
+read_buffer_size = 2M
+read_rnd_buffer_size = 8M
+sort_buffer_size = 8M
+join_buffer_size = 8M
+key_buffer_size = 256M
+
+thread_cache_size = 64
+
+query_cache_type = 1
+query_cache_size = 128M
+query_cache_limit = 4M
+
+ft_min_word_len = 4
+
+binlog_format = mixed
+expire_logs_days = 7
+
+#slow_query_log = 1
+#long_query_time = 1
+#slow_query_log_file = /tmp/mysql-slow.log
+
+performance_schema = 0
+explicit_defaults_for_timestamp
+
+#lower_case_table_names = 1
+
+skip-external-locking
+
+default_storage_engine = InnoDB
+#default-storage-engine = MyISAM
+innodb_file_per_table = 1
+innodb_open_files = 500
+innodb_buffer_pool_size = 1024M
+innodb_write_io_threads = 4
+innodb_read_io_threads = 4
+innodb_thread_concurrency = 0
+innodb_purge_threads = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 2M
+innodb_log_file_size = 32M
+innodb_log_files_in_group = 3
+innodb_max_dirty_pages_pct = 90
+innodb_lock_wait_timeout = 120
+
+bulk_insert_buffer_size = 8M
+myisam_sort_buffer_size = 64M
+myisam_max_sort_file_size = 10G
+myisam_repair_threads = 1
+
+interactive_timeout = 86400
+wait_timeout = 86400
+
+[mysqldump]
+quick
+max_allowed_packet = 500M
+
+[myisamchk]
+key_buffer_size = 256M
+sort_buffer_size = 8M
+read_buffer = 4M
+write_buffer = 4M
+
+[client]
+port        = 3306
+socket      = /opt/mysql/run/mysqld/mysqld.sock
+user=zabbix
+password=zabbix
+
+[mysqladmin]
+port        = 3306
+socket      = /opt/mysql/run/mysqld/mysqld.sock
+user=zabbix
+password=zabbix
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s部署nginx反向代理]]></title>
+        <id>https://blog.volin.top/post/k8s-bu-shu-nginx-fan-xiang-dai-li/</id>
+        <link href="https://blog.volin.top/post/k8s-bu-shu-nginx-fan-xiang-dai-li/">
+        </link>
+        <updated>2023-07-03T01:58:37.000Z</updated>
+        <summary type="html"><![CDATA[<p>如题</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>如题</p>
+<!-- more -->
+<p>Dockerfile</p>
+<pre><code>FROM harbor.querycap.com/rk-infra/nginx:1.17.9
+COPY nginx.conf /etc/nginx/conf.d/nginx.conf
+RUN rm -f  /etc/nginx/conf.d/default.conf
+</code></pre>
+<p>nginx.conf</p>
+<pre><code>server {
+    listen 80;
+    location / {
+        	proxy_pass http://111.53.209.167:20080;
+	        proxy_http_version 1.1;
+
+    }
+}
+
+</code></pre>
+<p>k8s-yml</p>
+<pre><code>--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+spec:
+  selector:
+    srv: proxy
+  type: ClusterIP
+  ports:
+  - name: http-80
+    port: 80
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  selector:
+    matchLabels:
+      srv: proxy
+  template:
+    metadata:
+      labels:
+        srv: proxy
+    spec:
+      containers:
+      - name: proxy
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+        readinessProbe:
+          httpGet:
+            port: 80
+            path: /
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            port: 80
+            path: /
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        image: 改镜像
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: &quot;2&quot;
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: demo.rockontrol.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: proxy
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[docker部署pgsql主从]]></title>
+        <id>https://blog.volin.top/post/docker-bu-shu-pgsql-zhu-cong/</id>
+        <link href="https://blog.volin.top/post/docker-bu-shu-pgsql-zhu-cong/">
+        </link>
+        <updated>2023-06-27T07:06:46.000Z</updated>
+        <summary type="html"><![CDATA[<p>docker部署pgsql主从，误打误撞搞出来了。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>docker部署pgsql主从，误打误撞搞出来了。</p>
+<!-- more -->
+<p>1、启动主库</p>
+<pre><code>docker run -d -e POSTGRES_PASSWORD='123456Ein!' \
+    -e DEFAULT_ENCODING=UTF8  \
+    -e  POSTGRES_DB=root  \
+    -e POSTGRES_USER=root  \
+    -e TZ=&quot;Asia/Shanghai&quot;  \
+    --name postgres_master  \
+    -v /data/pgsql:/var/lib/postgresql/data  \
+    -p 5432:5432  corray/postgis-11-mod
+</code></pre>
+<p>注意修改postgresql.auto.conf文件中的synchronous_commit = 'on'，修改为synchronous_commit = 'off'。<br>
+需要先编辑主节点的pg_hba.conf文件，添加以下参数，ip修改为从节点ip：</p>
+<pre><code>#postgresql.auto.conf
+
+synchronous_commit = 'off'
+
+
+#pg_hba.conf
+
+host replication replicaczxwfvx  10.103.12.27/16 trust
+</code></pre>
+<p>添加后重启主节点容器</p>
+<p>2、启动从库</p>
+<pre><code>docker run -d -e POSTGRES_PASSWORD='123456Ein!' \
+    -e DEFAULT_ENCODING=UTF8  \
+    -e  POSTGRES_DB=root  \
+    -e POSTGRES_USER=root  \
+    -e TZ=&quot;Asia/Shanghai&quot;  \
+    --name postgres_slave  \  
+    --add-host='pgsql-0.pgsql:10.103.12.26' \
+    -v /data/pgsql:/var/lib/postgresql/data  \
+    -p 5434:5432  corray/postgis-11-mod
+ 
+ 
+ 注意：
+ 1、-name postgres_slave名字不可更改。
+ 2、--add-host='pgsql-0.pgsql:10.103.12.26' 添加主机节点的hostname。
+</code></pre>
+<p>在完成上述操作之后，容器启动，会有如下日志</p>
+<pre><code>/usr/local/bin/docker-entrypoint.sh: sourcing /docker-entrypoint-initdb.d/06.master-slave-pgsql.sh
+salve_pg...
+this is slave pod...
+pulling master data...
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/8000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot &quot;pg_basebackup_39&quot;
+    0/78717 kB (0%), 0/1 tablespace (/tmp/data_tmp/backup_label         )
+78727/78727 kB (100%), 0/1 tablespace (/tmp/data_tmp/global/pg_control    )
+78727/78727 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/8000130
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: base backup completed
+restart pgsql...
+
+/usr/local/bin/docker-entrypoint.sh: sourcing /docker-entrypoint-initdb.d/10_postgis.sh
+skiping gis-init...
+
+pg_ctl: PID file &quot;/var/lib/postgresql/data/postmaster.pid&quot; does not exist
+Is server running?
+</code></pre>
+<p>此时，从节点已经从主节点同步完了数据，并且此时需要重启pgsql。此时容器处于退出状态。此时手动重启下docker容器。此时从节点启动起来，会自动完成主从配置。可以从以下几方面查看主从是否成功。</p>
+<pre><code>1、从节点pgsql数据目录下存在recovery.conf文件
+2、从节点pgsql数据目录下slave.logs内容为ok！
+3、从节点宿主机上执行 ps -ef |grep post 有 postgres: walreceiver   streaming 0/9001778进程
+4、主节点宿主机执行  ps -ef |grep send 有postgres: walsender replicaczxwfvx 10.103.12.27(44042) streaming 0/9001778 进程
+5、主库创建数据库，能马上同步到从库
+</code></pre>
+<p>3、synchronous_commit设置<br>
+在 PostgreSQL 中，同步复制模式是通过 <code>synchronous_commit</code> 参数来设置的。默认情况下，该参数的值为 <code>on</code>，表示主节点会等待所有备份节点都成功复制了事务才会提交。如果将该参数设置为 <code>off</code>，则表示主节点不会等待备份节点完成复制就会提交事务，这就是异步复制模式。</p>
+<p>您可以通过以下步骤来调整同步复制模式：</p>
+<ol>
+<li>
+<p>查看当前的 <code>synchronous_commit</code> 参数的值：</p>
+<p>SHOW synchronous_commit;</p>
+</li>
+<li>
+<p>如果该参数的值为 <code>on</code>，则表示当前使用的是同步复制模式。如果您想切换到异步复制模式，可以将该参数的值设置为 <code>off</code>：</p>
+<p>SET synchronous_commit = off;</p>
+<p>这样就可以将同步复制模式切换为异步复制模式了。</p>
+</li>
+<li>
+<p>如果您想切换回同步复制模式，可以将 <code>synchronous_commit</code> 参数的值再次设置为 <code>on</code>：</p>
+<p>SET synchronous_commit = on;</p>
+</li>
+</ol>
+<p>需要注意的是，异步复制模式可能会导致数据不一致或者数据丢失，因此需要谨慎操作。建议在进行操作之前备份数据，并在操作之后检查数据是否一致。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[centos7离线安装ansible]]></title>
+        <id>https://blog.volin.top/post/centos7-chi-xian-an-zhuang-ansible/</id>
+        <link href="https://blog.volin.top/post/centos7-chi-xian-an-zhuang-ansible/">
+        </link>
+        <updated>2023-06-27T01:41:53.000Z</updated>
+        <summary type="html"><![CDATA[<p>遇到一个离线环境，需要安装ansible来批量执行命令。网上大多数教程都是找一台系统一样且有网络的机器，下载依赖然后上传到离线环境安装，但是我这边没有有网络的相同系统版本的机器，找了半天，参考了tidb的历史部署文档，发现可以直接离线部署ansible。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>遇到一个离线环境，需要安装ansible来批量执行命令。网上大多数教程都是找一台系统一样且有网络的机器，下载依赖然后上传到离线环境安装，但是我这边没有有网络的相同系统版本的机器，找了半天，参考了tidb的历史部署文档，发现可以直接离线部署ansible。</p>
+<!-- more -->
+<p>tidb离线部署ansible文档<br>
+https://docs-archive.pingcap.com/zh/tidb/v3.1/offline-deployment-using-ansible</p>
+<h1 id="安装依赖包">安装依赖包</h1>
+<p>在下载机上下载系统依赖离线安装包，然后上传至中控机。该离线包仅支持 CentOS 7 系统，包含 pip 及 sshpass。<br>
+依赖离线安装包：https://download.pingcap.org/ansible-system-rpms.el7.tar.gz</p>
+<p>在中控机上安装系统依赖包：</p>
+<pre><code>tar -xzvf ansible-system-rpms.el7.tar.gz &amp;&amp;
+cd ansible-system-rpms.el7 &amp;&amp;
+chmod u+x install_ansible_system_rpms.sh &amp;&amp;
+./install_ansible_system_rpms.sh
+</code></pre>
+<p>安装完成后，可通过 pip -V 验证 pip 是否安装成功：</p>
+<pre><code>pip -V
+pip 8.1.2 from /usr/lib/python2.7/site-packages (python 2.7)
+</code></pre>
+<p>注意<br>
+如果你的系统已安装 pip，请确认版本 &gt;= 8.1.2，否则离线安装 TiDB Ansible 及其依赖时，会有兼容问题。</p>
+<h1 id="离线安装ansible">离线安装ansible</h1>
+<p>Ansible 及相关依赖版本记录在 tidb-ansible/requirements.txt 文件中。下面步骤以安装 Ansible 2.5 为例。</p>
+<p>在下载机上下载 Ansible 2.5 离线安装包，然后上传至中控机。<br>
+离线安装包：https://download.pingcap.org/ansible-2.5.0-pip.tar.gz<br>
+离线安装 TiDB Ansible 及相关依赖：</p>
+<pre><code>tar -xzvf ansible-2.5.0-pip.tar.gz &amp;&amp;
+cd ansible-2.5.0-pip/ &amp;&amp;
+chmod u+x install_ansible.sh &amp;&amp;
+./install_ansible.sh
+</code></pre>
+<p>安装完成后，可通过 ansible --version 查看版本：</p>
+<pre><code>ansible --version
+ansible 2.5.0
+</code></pre>
+<h1 id="进阶">进阶</h1>
+<p>以上是tidb官方提供的离线安装方式，安装ansible2.5版本没有任何问题，官方也只建议使用 Ansible 2.4 至 2.7.11 版本。但是其实我需要的版本是2.9版本，于是我使用相同方式安装ansible2.9。发现依旧成功了。</p>
+<p>在解压 Ansible 2.5 离线安装包之后，在<code>ansible-2.5.0-pip/ansible_offline_packages</code>文件夹中，存在有需要pip安装的文件，其中就包括ansible2.5的文件<code>ansible-2.5.0.tar.gz</code>。</p>
+<p>下载ansible安装包，到<code>ansible-2.5.0-pip/ansible_offline_packages</code>文件夹<br>
+下载地址：https://releases.ansible.com/ansible/</p>
+<p>注意：<br>
+1、文件夹中只能存在一个ansible安装文件。不能同时存在两个<code>ansible-*.tar.gz</code><br>
+2、ansible安装文件只能是数字，不能有其他字符：如<code>ansible-2.9.27rc1.tar.gz</code>是被允许的，需要更名为<code>ansible-2.9.27.tar.gz </code><br>
+3、目前我只尝试了到2.9.27版本。理论上是2.5到2.9版本都支持。</p>
+<p>替换完成后还是直接运行：</p>
+<pre><code>chmod u+x install_ansible.sh &amp;&amp;
+./install_ansible.sh
+</code></pre>
+<p>安装完成后，可通过 ansible --version 查看版本：</p>
+<pre><code>ansible --version
+ansible 2.9.27
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[如何创建/保存/同步多架构容器 Docker 镜像]]></title>
+        <id>https://blog.volin.top/post/ru-he-chuang-jian-bao-cun-tong-bu-duo-jia-gou-rong-qi-docker-jing-xiang/</id>
+        <link href="https://blog.volin.top/post/ru-he-chuang-jian-bao-cun-tong-bu-duo-jia-gou-rong-qi-docker-jing-xiang/">
+        </link>
+        <updated>2023-04-21T06:23:50.000Z</updated>
+        <summary type="html"><![CDATA[<p>docker镜像遇到了多架构的相关问题，试试能不能解决</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>docker镜像遇到了多架构的相关问题，试试能不能解决</p>
+<!-- more -->
+<p>如何构建多架构镜像</p>
+<p>在此之前，我们要了解BuildKit。BuildKit是一个高度可定制的构建工具，用于构建容器化应用程序。它是Docker的官方构建引擎，但也可以作为独立工具使用。BuildKit具有高性能和灵活性，支持多阶段构建和并发构建策略，并提供了丰富的构建缓存和镜像优化功能。</p>
+<p>Buildx是将构建多架构镜像的功能集成到Docker CLI中的插件，它使用了BuildKit作为构建引擎。与BuildKit相比，Buildx提供了额外的功能和选项，例如可以使用<code>--platform</code>选项同时指定多个平台、支持交叉编译、支持镜像导出、支持远程构建等等。</p>
+<p>使用Buildx构建多架构镜像的步骤与使用BuildKit类似，只是需要先安装Buildx插件。例如，使用以下命令在MacOS上安装Buildx：</p>
+<pre><code>docker buildx install --driver docker-container
+</code></pre>
+<p>然后就可以使用<code>docker buildx</code>命令来构建多架构镜像了，例如：</p>
+<pre><code>docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t &lt;image-name&gt; .
+</code></pre>
+<p>这会在Linux x86_64、ARM64和ARMv7架构上构建镜像。</p>
+<p>总的来说，Buildx是一个更高级、更易于使用的多架构构建工具，它基于BuildKit构建引擎实现了更多的功能，并且可以方便地与Docker CLI集成使用。</p>
+<pre><code>FROM --platform=$TARGETPLATFORM alpine
+
+RUN uname -a &gt; /os.txt
+
+CMD cat /os.txt
+
+</code></pre>
+<p>施工中....</p>
+]]></content>
+    </entry>
+</feed>

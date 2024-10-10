@@ -1,0 +1,232 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NVIDIA和ubuntu踩坑 | FunkyPantsSa</title>
+<link rel="shortcut icon" href="https://blog.volin.top/favicon.ico?v=1728547649290">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://blog.volin.top/styles/main.css">
+
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://blog.volin.top">
+  <img class="avatar" src="https://blog.volin.top/images/avatar.png?v=1728547649290" alt="">
+  </a>
+  <h1 class="site-title">
+    FunkyPantsSa
+  </h1>
+  <p class="site-description">
+    <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              NVIDIA和ubuntu踩坑
+            </h2>
+            <div class="post-info">
+              <time class="post-time">
+                · 2024-06-18 ·
+              </time>
+              
+            </div>
+            
+            <div class="post-content">
+              <p>十多台机器，有新有旧，搭建个测试环境，机器配置都还可以服务器裸机裸跑k8s。很快就搭建完了，刚开始还没什么问题，每个节点运行状态都很良好，英伟达驱动也正常访问，调度了一些服务上去也正常running</p>
+<p>然后周五，发现有的英伟达的驱动掉了，具体表现就是nvidia-smi报错，查看pci设备，发现报错：</p>
+<pre><code>NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+</code></pre>
+<p>这肯定是由于显卡温度过高导致的，我找it核对了下。it反馈，有几台机器是单独加的数据中心的卡，没有独立的散热风，应该是这个原因，又折腾大半天吧散热风扇加上。再跑又正常了。</p>
+<p>周五下班的时候，我还看了一眼，服务都正常运行的。周一来看，发现有k8s集群里面有个nvidia的服务一直在CrashLoopBackOff，查看日志是没有找到显卡驱动。在机器上去执行nvidia-smi，发现一直卡主，没有输出。我查看显卡是，正常的挂在设备上的,切运行状态正常：</p>
+<pre><code>3b:00.0 3D controller: NVIDIA Corporation TU104GL [Tesla T4] (rev a1)
+        Subsystem: NVIDIA Corporation TU104GL [Tesla T4]
+        Flags: bus master, fast devsel, latency 0, IRQ 379, NUMA node 0
+        Memory at b7000000 (32-bit, non-prefetchable) [size=16M]
+        Memory at 38bfc0000000 (64-bit, prefetchable) [size=256M]
+        Memory at 38bff0000000 (64-bit, prefetchable) [size=32M]
+        Capabilities: [60] Power Management version 3
+        Capabilities: [68] Null
+        Capabilities: [78] Express Endpoint, MSI 00
+        Capabilities: [c8] MSI-X: Enable+ Count=6 Masked-
+        Capabilities: [100] Virtual Channel
+        Capabilities: [258] L1 PM Substates
+        Capabilities: [128] Power Budgeting &lt;?&gt;
+        Capabilities: [420] Advanced Error Reporting
+        Capabilities: [600] Vendor Specific Information: ID=0001 Rev=1 Len=024 &lt;?&gt;
+        Capabilities: [900] Secondary PCI Express
+        Capabilities: [bb0] Resizable BAR &lt;?&gt;
+        Capabilities: [bcc] Single Root I/O Virtualization (SR-IOV)
+        Capabilities: [c14] Alternative Routing-ID Interpretation (ARI)
+        Kernel driver in use: nvidia
+        Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+
+</code></pre>
+<p>查看dmesg，有以下报错：</p>
+<pre><code>Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933321] INFO: task nvidia-sleep.sh:33710 blocked for more than 724 seconds.
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933377]       Tainted: P        W  OE     5.15.0-101-generic #111~20.04.1-Ubuntu
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933415] &quot;echo 0 &gt; /proc/sys/kernel/hung_task_timeout_secs&quot; disables this message.
+Mar 29 12:41:05 sc-chengdu-six-district-sentry-ssd-02 kernel: [ 3867.933451] task:nvidia-sleep.sh state:D stack:    0 pid:33710 ppid:     1 flags:0x00000000
+</code></pre>
+<p>看样子是再执行nvidia-sleep.sh的时候，卡住了。我执行了一下reboot，但是执行了reboot发现机器并没有重启，肯定是有什么阻断了重启，我也没多想，就<code>reboot -f</code>直接强制重启了，重启之后显卡和驱动又正常了。但是过了一会还是掉了。</p>
+<p>nvidia-sleep.sh查找了一下是nvidia的一个电源管理相关的一个脚本。具体我查找到了官方的这个链接：</p>
+<pre><code>https://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/powermanagement.html
+</code></pre>
+<p>其意思就是，为了省电节能，NVIDIA 内核驱动程序会从 Linux 内核接收回调，以挂起、休眠和恢复已注册 Linux PCI 驱动程序的每个 GPU。会吧显存里面的信息写入RAM或者是磁盘，来进行休眠。从而降低功耗。</p>
+<p>功能是没问题的，我就在想，为啥显卡会休眠呢，既然你要休眠，那我不让你显卡休眠，那不就不会触发nvidia-sleep.sh脚本了吗。</p>
+<p>于是我接着查资料，找到了一个大佬写的帖子：</p>
+<pre><code>https://leiblog.wang/%E8%B8%A9%E5%9D%91nvidia-driver/
+</code></pre>
+<p>他的症状和我很像，<code>nvidia-smi</code>会卡住十几分钟，之后输出<code>No devices were found</code>，但是执行<code>lspci | grep -i nvidia</code>还是可以看到四块显卡好好的挂在上面，这种情况应该直接 reboot 就可以修复，但是 reboot 了之后同样的程序运行一段时间之后显卡还是会掉。</p>
+<p>大佬的分析是，GPU 的驱动程序会在机器的开启时被加载，机器关闭时再被卸载。而在在没有显示器的 Linux 操作系统 (headless systems) 中，尤其是 HPC 中非常常见，GPU 的驱动程序会随着 GPU 运行的程序开始的时候自动被加载，程序关闭时自动被卸载，由于切换次数过多显卡被频繁初始化，CPU 访问 PCIe config registers 时间过长导致 softlock，从而造成 GPU 的死机。(引用自：https://bbs.gpuworld.cn/index.php?topic=10353.0)</p>
+<p>那我这个有没有是这原因导致的呢，于是我打开了显卡的持久模式：</p>
+<pre><code>sudo nvidia-smi -pm 1
+</code></pre>
+<p>再次查看<code>nvidia-smi</code>发现持久模式已经打开了，我也以为问题就这么解决了。但是泡了一会，发现还是掉驱动了。查看显卡状态依旧是正常，然后我看了下内核日志：</p>
+<pre><code>[    5.018542] NVRM: loading NVIDIA UNIX x86_64 Kernel Module  515.86.01  Wed Oct 26 09:12:38 UTC 2022
+[ 1245.745471] NVRM: GPU at PCI:0000:3b:00: GPU-9d3721a7-6efa-7184-a95a-36a9928e780f
+[ 1245.745487] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801117 0x1).
+[ 1277.641716] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1311.437934] NVRM: GPU at PCI:0000:d8:00: GPU-f276c25e-7e10-f61b-a360-9cc71dcc6174
+[ 1311.437945] NVRM: Xid (PCI:0000:d8:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1344.334220] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function UNLOADING_GUEST_DRIVER (0x0 0x0).
+[ 1464.755264] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801322 0x808).
+[ 2318.878472] NVRM: Xid (PCI:0000:3b:00): 119, pid='&lt;unknown&gt;', name=&lt;unknown&gt;, Timeout waiting for RPC from GSP! Expected function GSP_RM_CONTROL (0x20801322 0x808).
+
+
+</code></pre>
+<p><code>Timeout waiting for RPC from GSP!</code>这个报错，我在github上找到了一个帖子：</p>
+<pre><code>https://github.com/NVIDIA/open-gpu-kernel-modules/issues/446
+</code></pre>
+<p>查看了一下帖子的内容，nvidia表示 <code>GSP</code> 功能是从510版本开始引入的，但目前还没有修复。他们只给出了下面提到的禁用它的方法，或者建议我们将版本降级到&lt;510（例如470），以便更稳定。</p>
+<pre><code class="language-shell">#1、To disable GSP-RM
+sudo su -c 'echo options nvidia NVreg_EnableGpuFirmware=0 &gt; /etc/modprobe.d/nvidia-gsp.conf'
+
+#2.Enable the kernel 
+sudo update-initramfs -u
+
+#3.reboot
+#4.Check if work.
+cat /proc/driver/nvidia/params | grep EnableGpuFirmware
+
+
+</code></pre>
+<p>我按照这个指引做了，在重启下来，发现驱动、服务都正常了。</p>
+<p>但是过了一会，服务器直接掉了，ping也ping不通。我还以为是服务器挂了。冲到机房打开kvm，发现是机器休眠了！！</p>
+<pre><code>Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.454949] PM: suspend entry (s2idle)
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.457151] Filesystems sync: 0.002 seconds
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.457963] Freezing user space processes ... (elapsed 0.003 seconds) done.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.461722] OOM killer disabled.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.461725] Freezing remaining freezable tasks ... (elapsed 0.003 seconds) done.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.464889] printk: Suspending console(s) (use no_console_suspend to debug)
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.470697] serial 00:04: disabled
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.471345] serial 00:03: disabled
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.471726] eno2 speed is unknown, defaulting to 1000
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.519038] megaraid_sas 0000:af:00.0: megasas_suspend is called
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 1238.577653] megaraid_sas 0000:af:00.0: megasas_disable_intr_fusion is called outbound_intr_mask:0x40000009
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065722] pci 0000:85:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065806] pci 0000:17:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.065940] pci 0000:ae:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066011] pci 0000:d7:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066109] megaraid_sas 0000:af:00.0: megasas_resume is called
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066107] pci 0000:3a:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066114] megaraid_sas 0000:af:00.0: Waiting for FW to come to ready state
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066119] megaraid_sas 0000:af:00.0: megasas_disable_intr_fusion is called outbound_intr_mask:0x40000009
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.066152] pci 0000:5d:05.0: disabled boot interrupts on device [8086:2034]
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.067267] power_meter ACPI000D:00: Found ACPI power meter.
+Apr  1 13:42:29 sc-chengdu-six-district-sentry-agent-08 kernel: [ 7700.070426] serial 00:03: activated
+</code></pre>
+<p>合着最终原因是在这儿。</p>
+<pre><code>sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+</code></pre>
+<p>关闭ubuntu的自动休眠，再看看驱动和服务。截至目前运行正常，再没出现掉驱动的问题。</p>
+<p>后续我猜测，是由于ubuntu本身想要休眠，于是把休眠的指令传达给了显卡，显卡休眠就执行了nvidia-sleep.sh，但是这个休眠的命令被卡主了。于是系统就处在一个正在休眠的状态中。nvidia-smi卡主没输出，reboot不生效也能印证这一点。当后面解决了nvida-sleep的卡主后，系统就能正常休眠了。</p>
+<p>1、不能太过于相信任何人，一切以自己亲自检查过为准。</p>
+<p>2、加强自己在ubuntu和nvidia驱动方面的知识，特别是休眠相关。</p>
+<p>3、对问题的思考应该多层面一点，不要只看到表面的现象，要思考深层次原理是什么。</p>
+
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://blog.volin.top/post/juicefs-gua-zai-minio/">
+              <h3 class="post-title">
+                JuiceFS挂载minio
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  <script type="text/javascript" src="https://yijuzhan.com/api/word.php?m=js"></script><script>document.write("<div>");yiju(true);document.write("</div>");</script>
+
+
+<a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2023038623号</a> | 
+  <a class="rss" href="https://blog.volin.top/atom.xml" target="_blank">RSS</a>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+      </div>
+    </div>
+  </body>
+</html>
