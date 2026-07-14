@@ -1,0 +1,588 @@
+/* =========================================================
+   Butterfly 自定义主题：多巴胺马卡龙风格
+   说明：
+   1. 这个文件承接原来 inject.head 里的大段内联样式
+   2. 主要覆盖背景、导航、卡片、代码块、翻页卡片、相关推荐、页脚
+   3. 这里保留了较多注释，方便后续继续微调
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   一、首页头图文案左对齐
+   --------------------------------------------------------- */
+#site-info {
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  padding-left: 10% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#site-title {
+  text-align: left !important;
+  margin-left: 0 !important;
+}
+
+#site-subtitle {
+  text-align: left !important;
+}
+
+/* ---------------------------------------------------------
+   二、主题变量与全站背景
+   --------------------------------------------------------- */
+:root {
+  --macaron-pink: #ff8fb1;
+  --macaron-peach: #ffc68a;
+  --macaron-yellow: #ffeaa6;
+  --macaron-mint: #9fe3d8;
+  --macaron-blue: #8dc8ff;
+  --macaron-lilac: #cab8ff;
+  --glass-bg: linear-gradient(135deg, rgba(255, 250, 252, 0.76) 0%, rgba(242, 249, 255, 0.7) 52%, rgba(255, 247, 232, 0.72) 100%);
+  --glass-border: rgba(255, 255, 255, 0.42);
+  --glass-shadow: 0 18px 45px rgba(255, 165, 187, 0.18);
+  --title-pink: #ff5e7e;
+  --title-blue: #4ea8de;
+  --text-deep: #5b6078;
+  --text-soft: #6a7188;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 166, 194, 0.36) 0, rgba(255, 166, 194, 0.06) 22%, transparent 42%),
+    radial-gradient(circle at 82% 16%, rgba(255, 214, 143, 0.32) 0, rgba(255, 214, 143, 0.08) 20%, transparent 42%),
+    radial-gradient(circle at 74% 70%, rgba(157, 236, 220, 0.28) 0, rgba(157, 236, 220, 0.08) 24%, transparent 40%),
+    radial-gradient(circle at 18% 82%, rgba(141, 200, 255, 0.3) 0, rgba(141, 200, 255, 0.08) 22%, transparent 38%),
+    linear-gradient(135deg, #fff8fb 0%, #fffdf7 28%, #f4fbff 62%, #fdf7ff 100%) !important;
+  background-attachment: fixed !important;
+  color: var(--text-deep) !important;
+}
+
+#web_bg {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 142, 174, 0.28) 0, transparent 30%),
+    radial-gradient(circle at 85% 18%, rgba(255, 197, 110, 0.24) 0, transparent 28%),
+    radial-gradient(circle at 78% 76%, rgba(137, 216, 255, 0.22) 0, transparent 26%),
+    radial-gradient(circle at 25% 78%, rgba(172, 241, 211, 0.22) 0, transparent 28%),
+    linear-gradient(145deg, rgba(255, 249, 252, 0.88) 0%, rgba(248, 252, 255, 0.84) 48%, rgba(255, 248, 239, 0.86) 100%) !important;
+  filter: saturate(112%) !important;
+}
+
+#web_bg::before,
+#web_bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#web_bg::before {
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.08) 36%, rgba(255, 255, 255, 0.3) 100%),
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.55) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 72% 26%, rgba(255, 255, 255, 0.45) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 62% 80%, rgba(255, 255, 255, 0.38) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 30% 72%, rgba(255, 255, 255, 0.4) 0 2px, transparent 2.5px);
+  background-size: auto, 180px 180px, 220px 220px, 240px 240px, 200px 200px;
+  opacity: 0.72;
+}
+
+#web_bg::after {
+  inset: 4% 6%;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.35), transparent 36%),
+    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.24), transparent 30%),
+    radial-gradient(circle at 80% 88%, rgba(255, 255, 255, 0.2), transparent 28%);
+  filter: none;
+  opacity: 0.95;
+}
+
+/* ---------------------------------------------------------
+   三、顶部导航与头图文字
+   --------------------------------------------------------- */
+#page-header {
+  background-color: transparent !important;
+}
+
+#page-header::before {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+#nav {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+}
+
+#site-title,
+#site-subtitle,
+#site-info {
+  position: relative;
+  z-index: 2;
+}
+
+#site-title {
+  color: #ff6f91 !important;
+  text-shadow: 0 4px 18px rgba(255, 255, 255, 0.4), 0 10px 26px rgba(255, 143, 177, 0.2) !important;
+}
+
+#site-subtitle {
+  color: #6283b0 !important;
+  text-shadow: 0 2px 12px rgba(255, 255, 255, 0.42) !important;
+}
+
+#page-header #nav .site-page,
+#page-header #nav .site-page i,
+#page-header #nav span.site-page,
+#page-header #nav .menus_item_child li a,
+#page-header #nav #site-name,
+#page-header #nav .site-name,
+#page-header #nav #toggle-menu,
+#page-header #nav a {
+  color: #6a6f86 !important;
+  text-shadow: none !important;
+}
+
+#page-header.nav-fixed #nav .site-page,
+#page-header.nav-fixed #nav .site-page i,
+#page-header.nav-fixed #nav span.site-page,
+#page-header.nav-fixed #nav #site-name,
+#page-header.nav-fixed #nav .site-name,
+#page-header.nav-fixed #nav #toggle-menu,
+#page-header.nav-fixed #nav a {
+  color: #5d637d !important;
+}
+
+.layout,
+#content-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------
+   四、主体卡片：正文、侧边栏、首页卡片
+   --------------------------------------------------------- */
+#post #article-container,
+#post .post-copyright,
+#post #post-comment,
+.recent-post-item,
+#aside-content .card-widget,
+.prev-next-post,
+.relatedPosts-list > a {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow) !important;
+  backdrop-filter: blur(16px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  overflow: hidden;
+  position: relative;
+}
+
+#post #article-container::before,
+#post .post-copyright::before,
+#post #post-comment::before,
+.recent-post-item::before,
+#aside-content .card-widget::before,
+.prev-next-post::before,
+.relatedPosts-list > a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.06) 42%, rgba(255, 255, 255, 0.22) 100%);
+  pointer-events: none;
+}
+
+#post #article-container {
+  padding: 40px 30px !important;
+  border-radius: 28px !important;
+  box-shadow: 0 24px 60px rgba(255, 181, 168, 0.16), 0 10px 26px rgba(136, 186, 255, 0.14) !important;
+}
+
+.recent-post-item,
+#aside-content .card-widget,
+.prev-next-post {
+  border-radius: 24px !important;
+}
+
+.recent-post-item:hover,
+#aside-content .card-widget:hover,
+.relatedPosts-list > a:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 45px rgba(255, 141, 176, 0.2) !important;
+}
+
+/* 通用浅色文字修正 */
+.recent-post-item,
+.recent-post-item .recent-post-info,
+.recent-post-item .recent-post-info .article-title,
+.recent-post-item .recent-post-info .content,
+.recent-post-item .article-meta-wrap,
+.recent-post-item .article-meta-wrap a,
+.recent-post-item .article-meta-wrap span,
+.recent-post-item .article-meta__separator,
+.recent-post-item .post_cover + .recent-post-info .article-title,
+.recent-post-item .post_cover + .recent-post-info .content,
+.recent-post-item .post_cover + .recent-post-info .article-meta-wrap,
+.recent-post-item .post_cover + .recent-post-info .article-meta-wrap a,
+#post-info,
+#post-info #post-meta,
+#post-info #post-meta a,
+#page-header.post-bg #post-info,
+#page-header.post-bg #post-info #post-meta,
+#page-header.post-bg #post-info #post-meta a,
+#post-info .post-title,
+#post-info #post-meta .post-meta-label,
+#post-info #post-meta .post-meta-icon {
+  color: #5f647c !important;
+  text-shadow: none !important;
+}
+
+/* ---------------------------------------------------------
+   五、正文排版与代码块
+   --------------------------------------------------------- */
+#article-container h1,
+#article-container h2 {
+  color: var(--title-pink) !important;
+  border-bottom: 3px dashed #ffb86c !important;
+  padding-bottom: 8px;
+  margin-top: 24px;
+}
+
+#article-container h3,
+#article-container h4 {
+  color: var(--title-blue) !important;
+  background: rgba(78, 168, 222, 0.08);
+  padding: 6px 10px;
+  border-left: 5px solid #4ea8de;
+  border-radius: 10px;
+}
+
+#article-container strong {
+  color: var(--title-pink) !important;
+  background: linear-gradient(to top, rgba(255, 121, 198, 0.25) 40%, transparent 40%);
+}
+
+/* 行内代码仍保留深色小药丸风格 */
+#article-container code {
+  color: #ffb86c !important;
+  background: linear-gradient(135deg, #2f3144 0%, #23263a 100%) !important;
+  padding: 3px 6px !important;
+  border-radius: 8px;
+  font-family: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* 代码块：恢复不自动换行，只做配色 */
+#article-container pre,
+#article-container pre[class*="language-"] {
+  background: transparent !important;
+}
+
+#article-container figure.highlight,
+#article-container .highlight:not(.js-file-line-container),
+#article-container pre[class*="language-"] {
+  background: linear-gradient(135deg, #243b55 0%, #2b5876 52%, #356f8d 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 16px 34px rgba(53, 99, 139, 0.2) !important;
+  overflow: hidden;
+}
+
+#article-container figure.highlight::before,
+#article-container pre[class*="language-"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%);
+  pointer-events: none;
+}
+
+#article-container figure.highlight .highlight-tools,
+#article-container .highlight-tools {
+  background: rgba(18, 37, 56, 0.46) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(243, 248, 255, 0.88) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#article-container figure.highlight .gutter pre,
+#article-container figure.highlight .gutter .line,
+#article-container figure.highlight .gutter {
+  background: rgba(19, 33, 49, 0.28) !important;
+  color: rgba(226, 237, 248, 0.42) !important;
+}
+
+#article-container figure.highlight pre,
+#article-container figure.highlight .code pre,
+#article-container figure.highlight .code .line,
+#article-container pre[class*="language-"] code,
+#article-container .highlight table td {
+  background: transparent !important;
+  color: #eef6ff !important;
+}
+
+#article-container figure.highlight .comment,
+#article-container figure.highlight .quote {
+  color: rgba(202, 223, 241, 0.55) !important;
+}
+
+#article-container figure.highlight .string,
+#article-container figure.highlight .attr,
+#article-container figure.highlight .template-tag {
+  color: #ffd7a8 !important;
+}
+
+#article-container figure.highlight .keyword,
+#article-container figure.highlight .selector-tag,
+#article-container figure.highlight .built_in {
+  color: #ff9fc6 !important;
+}
+
+#article-container figure.highlight .title,
+#article-container figure.highlight .section,
+#article-container figure.highlight .name {
+  color: #9fe7ff !important;
+}
+
+#article-container figure.highlight .number,
+#article-container figure.highlight .literal,
+#article-container figure.highlight .symbol {
+  color: #ffe18d !important;
+}
+
+/* ---------------------------------------------------------
+   六、目录高亮
+   --------------------------------------------------------- */
+#aside-content #card-toc .toc-item.active .toc-link {
+  color: var(--title-pink) !important;
+  background: rgba(255, 94, 126, 0.1) !important;
+  border-left-color: var(--title-pink) !important;
+  border-radius: 8px !important;
+}
+
+/* ---------------------------------------------------------
+   七、上一篇 / 下一篇
+   说明：Butterfly 这里实际使用的是 .pagination-related
+   --------------------------------------------------------- */
+#pagination.pagination-post {
+  background: transparent !important;
+  box-shadow: none !important;
+  gap: 12px;
+}
+
+#pagination.pagination-post .pagination-related {
+  background: linear-gradient(145deg, rgba(255, 238, 244, 0.98) 0%, rgba(255, 245, 211, 0.96) 52%, rgba(226, 244, 255, 0.94) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.56) !important;
+  box-shadow: 0 18px 36px rgba(255, 187, 196, 0.18) !important;
+}
+
+#pagination.pagination-post .pagination-related::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 100%) !important;
+}
+
+#pagination.pagination-post .pagination-related img.cover,
+#pagination.pagination-post .pagination-related .cover {
+  opacity: 0 !important;
+}
+
+#pagination.pagination-post .pagination-related .info .info-1,
+#pagination.pagination-post .pagination-related .info .info-2,
+#pagination.pagination-post .pagination-related .info .info-item-1,
+#pagination.pagination-post .pagination-related .info .info-item-2 {
+  color: #626b84 !important;
+  text-shadow: none !important;
+}
+
+#pagination.pagination-post .pagination-related .info .info-item-1 {
+  color: #ff7190 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+#pagination.pagination-post .pagination-related .info .info-item-2 {
+  color: #536079 !important;
+  font-weight: 700 !important;
+}
+
+#pagination.pagination-post .pagination-related:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.01);
+}
+
+/* ---------------------------------------------------------
+   八、相关推荐
+   说明：这里实际结构是 a > .info > .info-1/.info-2
+   --------------------------------------------------------- */
+.relatedPosts {
+  background: transparent !important;
+}
+
+.relatedPosts > .headline {
+  color: var(--title-pink) !important;
+  font-weight: 700 !important;
+}
+
+.relatedPosts > .relatedPosts-list > a {
+  background: linear-gradient(145deg, rgba(255, 238, 245, 0.97) 0%, rgba(255, 246, 219, 0.94) 46%, rgba(224, 244, 255, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.56) !important;
+  box-shadow: 0 14px 28px rgba(255, 188, 197, 0.16) !important;
+}
+
+.relatedPosts > .relatedPosts-list > a::before {
+  opacity: 0.32;
+}
+
+.relatedPosts > .relatedPosts-list > a .info .info-1,
+.relatedPosts > .relatedPosts-list > a .info .info-2,
+.relatedPosts > .relatedPosts-list > a .info .info-item-1,
+.relatedPosts > .relatedPosts-list > a .info .info-item-2 {
+  color: #667088 !important;
+  text-shadow: none !important;
+}
+
+.relatedPosts > .relatedPosts-list > a .info .info-1 .info-item-1 {
+  color: #8c93ab !important;
+  font-weight: 500 !important;
+}
+
+.relatedPosts > .relatedPosts-list > a .info .info-1 .info-item-2,
+.relatedPosts > .relatedPosts-list > a .info .info-2 .info-item-1 {
+  color: #58647e !important;
+  font-weight: 700 !important;
+}
+
+.relatedPosts > .relatedPosts-list > a:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 30px rgba(255, 165, 185, 0.22) !important;
+}
+
+/* ---------------------------------------------------------
+   九、页脚
+   --------------------------------------------------------- */
+#footer {
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+#footer,
+#footer a,
+#footer .copyright,
+#footer .framework-info,
+#footer .footer_custom_text,
+#footer .footer_custom_text div,
+#footer .footer_custom_text span {
+  color: rgba(110, 116, 139, 0.9) !important;
+  text-shadow: none !important;
+}
+
+/* ---------------------------------------------------------
+   十、深色模式补充
+   --------------------------------------------------------- */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 117, 156, 0.14) 0, transparent 26%),
+    radial-gradient(circle at 82% 14%, rgba(255, 185, 104, 0.14) 0, transparent 24%),
+    radial-gradient(circle at 74% 72%, rgba(115, 191, 255, 0.14) 0, transparent 26%),
+    linear-gradient(140deg, #1d1e2b 0%, #1f2334 45%, #222a3d 100%) !important;
+}
+
+[data-theme="dark"] #web_bg {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 132, 170, 0.18) 0, transparent 28%),
+    radial-gradient(circle at 84% 20%, rgba(255, 200, 123, 0.14) 0, transparent 24%),
+    radial-gradient(circle at 72% 78%, rgba(126, 194, 255, 0.16) 0, transparent 26%),
+    linear-gradient(140deg, rgba(26, 28, 43, 0.96) 0%, rgba(32, 37, 57, 0.96) 55%, rgba(27, 34, 50, 0.98) 100%) !important;
+}
+
+[data-theme="dark"] #web_bg::before {
+  opacity: 0.32;
+}
+
+[data-theme="dark"] #page-header::before {
+  background: rgba(12, 16, 27, 0.18) !important;
+}
+
+[data-theme="dark"] #post #article-container,
+[data-theme="dark"] #post .post-copyright,
+[data-theme="dark"] #post #post-comment,
+[data-theme="dark"] .recent-post-item,
+[data-theme="dark"] #aside-content .card-widget,
+[data-theme="dark"] .prev-next-post,
+[data-theme="dark"] .relatedPosts-list > a,
+[data-theme="dark"] #pagination.pagination-post .pagination-related {
+  background: linear-gradient(145deg, rgba(35, 40, 60, 0.72) 0%, rgba(29, 34, 52, 0.78) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22) !important;
+}
+
+[data-theme="dark"] #site-title {
+  color: #ff9db7 !important;
+  text-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+[data-theme="dark"] #site-subtitle {
+  color: #b4d7ff !important;
+}
+
+[data-theme="dark"] #page-header #nav .site-page,
+[data-theme="dark"] #page-header #nav .site-page i,
+[data-theme="dark"] #page-header #nav span.site-page,
+[data-theme="dark"] #page-header #nav #site-name,
+[data-theme="dark"] #page-header #nav .site-name,
+[data-theme="dark"] #page-header #nav #toggle-menu,
+[data-theme="dark"] #page-header #nav a {
+  color: rgba(233, 241, 255, 0.9) !important;
+}
+
+[data-theme="dark"] #post-info,
+[data-theme="dark"] #post-info .post-title,
+[data-theme="dark"] #post-info #post-meta,
+[data-theme="dark"] #post-info #post-meta a,
+[data-theme="dark"] .recent-post-item,
+[data-theme="dark"] .recent-post-item .recent-post-info,
+[data-theme="dark"] .recent-post-item .recent-post-info .article-title,
+[data-theme="dark"] .recent-post-item .recent-post-info .content,
+[data-theme="dark"] .recent-post-item .article-meta-wrap,
+[data-theme="dark"] .recent-post-item .article-meta-wrap a,
+[data-theme="dark"] .relatedPosts > .relatedPosts-list > a .info .info-item-1,
+[data-theme="dark"] .relatedPosts > .relatedPosts-list > a .info .info-item-2,
+[data-theme="dark"] #pagination.pagination-post .pagination-related .info .info-item-1,
+[data-theme="dark"] #pagination.pagination-post .pagination-related .info .info-item-2 {
+  color: rgba(238, 244, 255, 0.9) !important;
+}
+
+[data-theme="dark"] #footer,
+[data-theme="dark"] #footer a,
+[data-theme="dark"] #footer .copyright,
+[data-theme="dark"] #footer .framework-info,
+[data-theme="dark"] #footer .footer_custom_text,
+[data-theme="dark"] #footer .footer_custom_text div,
+[data-theme="dark"] #footer .footer_custom_text span {
+  color: rgba(220, 231, 248, 0.82) !important;
+}
+
+/* ---------------------------------------------------------
+   十一、移动端微调
+   --------------------------------------------------------- */
+@media screen and (max-width: 768px) {
+  #web_bg::after {
+    inset: 2.5% 3%;
+    border-radius: 22px;
+  }
+
+  #post #article-container {
+    padding: 28px 18px !important;
+    border-radius: 22px !important;
+  }
+
+  .recent-post-item,
+  #aside-content .card-widget,
+  .prev-next-post {
+    border-radius: 20px !important;
+  }
+}
