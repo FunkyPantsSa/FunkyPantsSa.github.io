@@ -117,6 +117,43 @@ body {
   box-shadow: none !important;
 }
 
+/* 让站点名与主菜单整体靠左排布，贴在一起 */
+#page-header #nav {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 18px !important;
+}
+
+#page-header #nav #blog-info {
+  flex: 0 0 auto !important;
+  margin-right: 0 !important;
+}
+
+#page-header #nav #menus {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important;
+  margin-left: 0 !important;
+}
+
+#page-header #nav #menus .menus_items {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  order: 1;
+}
+
+#page-header #nav #menus .menus_item {
+  padding: 0 18px 0 0 !important;
+}
+
+#page-header #nav #search-button {
+  order: 2;
+  padding: 0 0 0 8px !important;
+}
+
 #site-title,
 #site-subtitle,
 #site-info {
@@ -129,9 +166,21 @@ body {
   text-shadow: 0 4px 18px rgba(255, 255, 255, 0.4), 0 10px 26px rgba(255, 143, 177, 0.2) !important;
 }
 
+/* 首页只保留简介文案，站点大标题先隐藏，后续可随时恢复 */
+#page-header #site-title {
+  display: none !important;
+}
+
 #site-subtitle {
-  color: #6283b0 !important;
-  text-shadow: 0 2px 12px rgba(255, 255, 255, 0.42) !important;
+  color: var(--title-blue) !important;
+  text-shadow: 0 2px 12px rgba(255, 255, 255, 0.44) !important;
+  max-width: 760px;
+  margin-top: 12px !important;
+  line-height: 1.9 !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  white-space: pre-line !important;
+  letter-spacing: 0.01em;
 }
 
 #page-header #nav .site-page,
@@ -154,6 +203,22 @@ body {
 #page-header.nav-fixed #nav #toggle-menu,
 #page-header.nav-fixed #nav a {
   color: #5d637d !important;
+}
+
+@media screen and (max-width: 768px) {
+  #page-header #nav {
+    gap: 10px !important;
+  }
+
+  #page-header #nav #menus {
+    margin-left: auto !important;
+  }
+
+  #site-subtitle {
+    max-width: 92% !important;
+    font-size: 0.92rem !important;
+    line-height: 1.75 !important;
+  }
 }
 
 .layout,
