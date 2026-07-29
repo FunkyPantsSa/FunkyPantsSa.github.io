@@ -103,6 +103,11 @@
   --text-soft: #7a7164;
   --line-ink: rgba(92, 83, 72, 0.18);
   --line-ink-strong: rgba(92, 83, 72, 0.32);
+  --scrollbar-color: #c97868;
+  --hlscrollbar-bg: rgba(168, 106, 88, 0.62);
+  --btn-bg: rgba(168, 106, 88, 0.78);
+  --btn-hover-color: #8a6554;
+  --btn-color: #fffaf0;
 }
 
 body {
@@ -376,6 +381,21 @@ body {
   color: #8a6a55 !important;
   opacity: 1;
   transform: translateY(-1px);
+}
+
+#page-header #nav .menus_item a[href="/"] i,
+#page-header #nav .menus_item a[href="/"] .fa-home,
+#page-header #nav .nav-page-title .fa-circle-arrow-left,
+#page-header.nav-fixed #nav .menus_item a[href="/"] i,
+#page-header.nav-fixed #nav .menus_item a[href="/"] .fa-home,
+#page-header.nav-fixed #nav .nav-page-title .fa-circle-arrow-left {
+  color: #a86a58 !important;
+}
+
+#page-header #nav .menus_item a[href="/"]:hover i,
+#page-header #nav .menus_item a[href="/"]:hover .fa-home,
+#page-header #nav .nav-page-title:hover .fa-circle-arrow-left {
+  color: #c97868 !important;
 }
 
 /* 下滚箭头：置于波浪上方 */
@@ -1083,7 +1103,59 @@ body {
 }
 
 /* ---------------------------------------------------------
-   八、上一篇 / 下一篇
+   八、滚动条与右侧快捷按钮
+   --------------------------------------------------------- */
+* {
+  scrollbar-color: var(--scrollbar-color) transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-color) !important;
+  border-radius: 999px;
+}
+
+#article-container figure.highlight,
+#article-container figure.highlight pre,
+#article-container figure.highlight .code,
+#article-container pre[class*="language-"] {
+  scrollbar-color: var(--hlscrollbar-bg) transparent;
+}
+
+#article-container figure.highlight::-webkit-scrollbar-thumb,
+#article-container figure.highlight pre::-webkit-scrollbar-thumb,
+#article-container figure.highlight .code::-webkit-scrollbar-thumb,
+#article-container pre[class*="language-"]::-webkit-scrollbar-thumb {
+  background: var(--hlscrollbar-bg) !important;
+  border-radius: 999px;
+}
+
+#rightside > div > button,
+#rightside > div > a,
+#rightside #rightside-config,
+#rightside #go-up {
+  background: rgba(168, 106, 88, 0.78) !important;
+  color: #fffaf0 !important;
+  box-shadow: 0 4px 14px rgba(92, 83, 72, 0.16) !important;
+}
+
+#rightside > div > button i,
+#rightside > div > a i,
+#rightside #rightside-config i,
+#rightside #go-up i,
+#rightside .scroll-percent {
+  color: #fffaf0 !important;
+}
+
+#rightside > div > button:hover,
+#rightside > div > a:hover,
+#rightside #rightside-config:hover,
+#rightside #go-up:hover {
+  background: #8a6554 !important;
+  color: #fffaf0 !important;
+}
+
+/* ---------------------------------------------------------
+   九、上一篇 / 下一篇
    --------------------------------------------------------- */
 #pagination.pagination-post {
   background: transparent !important;
@@ -1510,6 +1582,14 @@ body {
 /* ---------------------------------------------------------
    十一、深色模式补充
    --------------------------------------------------------- */
+[data-theme="dark"] {
+  --scrollbar-color: #8f7864;
+  --hlscrollbar-bg: rgba(200, 150, 100, 0.5);
+  --btn-bg: rgba(112, 91, 72, 0.86);
+  --btn-hover-color: #9f7b5f;
+  --btn-color: #f6ead8;
+}
+
 [data-theme="dark"] body {
   background:
     radial-gradient(ellipse 50% 40% at 16% 20%, rgba(180, 130, 90, 0.12) 0, transparent 50%),
@@ -1630,6 +1710,32 @@ body {
 [data-theme="dark"] #page-header #nav a {
   color: rgba(233, 228, 214, 0.88) !important;
   text-shadow: none !important;
+}
+
+[data-theme="dark"] #page-header #nav .menus_item a[href="/"] i,
+[data-theme="dark"] #page-header #nav .menus_item a[href="/"] .fa-home,
+[data-theme="dark"] #page-header #nav .nav-page-title .fa-circle-arrow-left,
+[data-theme="dark"] #rightside > div > button i,
+[data-theme="dark"] #rightside > div > a i,
+[data-theme="dark"] #rightside #rightside-config i,
+[data-theme="dark"] #rightside #go-up i,
+[data-theme="dark"] #rightside .scroll-percent {
+  color: #f6ead8 !important;
+}
+
+[data-theme="dark"] #rightside > div > button,
+[data-theme="dark"] #rightside > div > a,
+[data-theme="dark"] #rightside #rightside-config,
+[data-theme="dark"] #rightside #go-up {
+  background: rgba(112, 91, 72, 0.86) !important;
+  color: #f6ead8 !important;
+}
+
+[data-theme="dark"] #rightside > div > button:hover,
+[data-theme="dark"] #rightside > div > a:hover,
+[data-theme="dark"] #rightside #rightside-config:hover,
+[data-theme="dark"] #rightside #go-up:hover {
+  background: #9f7b5f !important;
 }
 
 [data-theme="dark"] #post-info,
