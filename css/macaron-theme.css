@@ -43,7 +43,9 @@
   z-index: 3;
 }
 
-/* 首页不显示大标题，只保留左侧副标题 */
+/* 主标题开关：只控制首页大标题，不控制副标题。
+   想显示主标题时，把下面两行的 display: none 删掉即可。
+   副标题显示与否在 _config.butterfly.yml 的 subtitle.enable 中控制。 */
 #page-header.full_page #site-title,
 #page-header #site-title {
   display: none !important;
@@ -53,8 +55,6 @@
   text-align: left !important;
   margin: 0 !important;
   max-width: 720px;
-  /* 暂时隐藏副标题，恢复时删掉下一行即可 */
-  display: none !important;
 }
 
 #site-title {
