@@ -7,26 +7,17 @@
    ========================================================= */
 
 /* ---------------------------------------------------------
-   一、首页头图英雄区：居中文案 + 柔光遮罩
+   一、首页头图英雄区：居中文案
    --------------------------------------------------------- */
 #page-header.full_page {
   overflow: hidden !important;
   isolation: isolate;
 }
 
-/* 暖色柔光遮罩：避免偏灰压暗，只保留奶油色过渡 */
+/* 移除头图整张遮罩，保留底部波浪过渡 */
 #page-header.full_page::before,
 #page-header:not(.not-top-img)::before {
-  background:
-    linear-gradient(180deg,
-      rgba(255, 236, 210, 0.12) 0%,
-      rgba(255, 244, 228, 0.06) 28%,
-      rgba(255, 248, 236, 0.1) 55%,
-      rgba(250, 246, 238, 0.38) 82%,
-      rgba(250, 246, 238, 0.78) 100%) !important;
-  opacity: 1 !important;
-  z-index: 1;
-  pointer-events: none;
+  content: none !important;
 }
 
 #page-header.full_page #site-info {
