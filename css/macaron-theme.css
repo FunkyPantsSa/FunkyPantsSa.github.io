@@ -925,6 +925,37 @@ body {
   background: linear-gradient(to top, rgba(255, 214, 150, 0.45) 40%, transparent 40%);
 }
 
+/* 文章底部版权与标签：覆盖 Butterfly 默认蓝色，统一为暖棕粉配色 */
+#post .post-copyright {
+  color: var(--ghibli-ink-soft) !important;
+}
+
+#post .post-copyright .post-copyright-meta,
+#post .post-copyright .post-copyright-meta i {
+  color: var(--title-pink) !important;
+}
+
+#post .post-copyright .post-copyright-info,
+#post .post-copyright .post-copyright-info a {
+  color: var(--ghibli-ink) !important;
+}
+
+#post .post-copyright .post-copyright-info a:hover {
+  color: #a86a58 !important;
+}
+
+#post .tag_share .post-meta__tags {
+  border-color: rgba(168, 106, 88, 0.55) !important;
+  background: rgba(255, 230, 190, 0.22) !important;
+  color: #a86a58 !important;
+}
+
+#post .tag_share .post-meta__tags:hover {
+  border-color: #a86a58 !important;
+  background: rgba(168, 106, 88, 0.14) !important;
+  color: #8a6554 !important;
+}
+
 /* 行内代码：暖色纸感 */
 #article-container code {
   color: #a56b58 !important;
@@ -1760,6 +1791,28 @@ body {
 [data-theme="dark"] #aside-content .card-archive-list-count,
 [data-theme="dark"] #aside-content .card-archive-list-date {
   color: rgba(197, 190, 170, 0.65) !important;
+}
+
+[data-theme="dark"] #post .post-copyright .post-copyright-meta,
+[data-theme="dark"] #post .post-copyright .post-copyright-meta i {
+  color: #e8b898 !important;
+}
+
+[data-theme="dark"] #post .post-copyright .post-copyright-info,
+[data-theme="dark"] #post .post-copyright .post-copyright-info a {
+  color: rgba(238, 232, 218, 0.9) !important;
+}
+
+[data-theme="dark"] #post .tag_share .post-meta__tags {
+  border-color: rgba(232, 184, 152, 0.55) !important;
+  background: rgba(232, 184, 152, 0.1) !important;
+  color: #e8b898 !important;
+}
+
+[data-theme="dark"] #post .tag_share .post-meta__tags:hover {
+  border-color: #e8b898 !important;
+  background: rgba(232, 184, 152, 0.18) !important;
+  color: #f6ead8 !important;
 }
 
 [data-theme="dark"] #footer,
