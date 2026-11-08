@@ -1,0 +1,284 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>项脊轩志 | Volin的网络日志</title><meta name="author" content="volin"><meta name="copyright" content="volin"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="归有光《项脊轩志》全文，借项脊轩写家族变迁与对亲人的追忆。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项脊轩志">
+<meta property="og:url" content="https://www.volin.top/2019/06/21/Abstract/xiangjixuan/index.html">
+<meta property="og:site_name" content="Volin的网络日志">
+<meta property="og:description" content="归有光《项脊轩志》全文，借项脊轩写家族变迁与对亲人的追忆。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.volin.top/img/%E6%91%B8%E9%B1%BC.png">
+<meta property="article:published_time" content="2019-06-21T13:21:43.000Z">
+<meta property="article:modified_time" content="2026-11-08T13:06:15.663Z">
+<meta property="article:author" content="volin">
+<meta property="article:tag" content="文摘">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.volin.top/img/%E6%91%B8%E9%B1%BC.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "项脊轩志",
+  "url": "https://www.volin.top/2019/06/21/Abstract/xiangjixuan/",
+  "image": "https://www.volin.top/img/%E6%91%B8%E9%B1%BC.png",
+  "datePublished": "2019-06-21T13:21:43.000Z",
+  "dateModified": "2026-11-08T13:06:15.663Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "volin",
+      "url": "https://www.volin.top"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/%E6%91%B8%E9%B1%BC.png"><link rel="canonical" href="https://www.volin.top/2019/06/21/Abstract/xiangjixuan/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.7.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        try {
+          const data = { value }
+
+          if (ttl != null) {
+            data.expiry = Date.now() + ttl * 86400000
+          }
+
+          localStorage.setItem(key, JSON.stringify(data))
+        } catch (e) {
+          console.error(e)
+        }
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.1/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '项脊轩志',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preconnect" href="https://fonts.bunny.net" crossorigin><link rel="stylesheet" href="https://fonts.bunny.net/css?family=ma-shan-zheng:400&display=swap"><link rel="stylesheet" href="/css/macaron-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/%E6%91%B8%E9%B1%BC.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">10</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/default-post-bg.jpeg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/guitar.png" alt="Logo"><span class="site-name">Volin的网络日志</span></a><a class="nav-page-title" href="/"><span class="site-name">项脊轩志</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 文章</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">项脊轩志</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2019-06-21T13:21:43.000Z" title="发表于 2019-06-21 21:21:43">2019-06-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-08T13:06:15.663Z" title="更新于 2026-11-08 21:06:15">2026-11-08</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%96%87%E6%91%98/">文摘</a></span></div><div class="meta-secondline"></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="项脊轩志"><a href="#项脊轩志" class="headerlink" title="项脊轩志"></a>项脊轩志</h1><p>  项脊轩，旧南阁子也。室仅方丈，可容一人居。百年老屋，尘泥渗漉，雨泽下注;每移案，顾视，无可置者。又北向，不能得日，日过午已昏。余稍为修葺，使不上漏。前辟四窗，垣墙周庭，以当南日，日影反照，室始洞然。又杂植兰桂竹木于庭，旧时栏楯，亦遂增胜。借书满架，偃仰啸歌，冥然兀坐，万籁有声;而庭堦寂寂，小鸟时来啄食，人至不去。三五之夜，明月半墙，桂影斑驳，风移影动，珊珊可爱。(堦寂寂 一作：阶寂寂)</p>
+<p>  然余居于此，多可喜，亦多可悲。先是庭中通南北为一。迨诸父异爨，内外多置小门，墙往往而是。东犬西吠，客逾庖而宴，鸡栖于厅。庭中始为篱，已为墙，凡再变矣。家有老妪，尝居于此。妪，先大母婢也，乳二世，先妣抚之甚厚。室西连于中闺，先妣尝一至。妪每谓余曰：”某所，而母立于兹。”妪又曰：”汝姊在吾怀，呱呱而泣;娘以指叩门扉曰：‘儿寒乎?欲食乎?’吾从板外相为应答。”语未毕，余泣，妪亦泣。余自束发，读书轩中，一日，大母过余曰：”吾儿，久不见若影，何竟日默默在此，大类女郎也?”比去，以手阖门，自语曰：”吾家读书久不效，儿之成，则可待乎!”顷之，持一象笏至，曰：”此吾祖太常公宣德间执此以朝，他日汝当用之!”瞻顾遗迹，如在昨日，令人长号不自禁。</p>
+<p>  轩东，故尝为厨，人往，从轩前过。余扃牖而居，久之，能以足音辨人。轩凡四遭火，得不焚，殆有神护者。</p>
+<p>  项脊生曰：”蜀清守丹穴，利甲天下，其后秦皇帝筑女怀清台;刘玄德与曹操争天下，诸葛孔明起陇中。方二人之昧昧于一隅也，世何足以知之，余区区处败屋中，方扬眉、瞬目，谓有奇景。人知之者，其谓与坎井之蛙何异?”</p>
+<p>  余既为此志，后五年，吾妻来归，时至轩中，从余问古事，或凭几学书。吾妻归宁，述诸小妹语曰：”闻姊家有阁子，且何谓阁子也?”其后六年，吾妻死，室坏不修。其后二年，余久卧病无聊，乃使人复葺南阁子，其制稍异于前。然自后余多在外，不常居。<br>	<br>  庭有枇杷树，吾妻死之年所手植也，今已亭亭如盖矣。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.volin.top">volin</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.volin.top/2019/06/21/Abstract/xiangjixuan/">https://www.volin.top/2019/06/21/Abstract/xiangjixuan/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.volin.top" target="_blank">Volin的网络日志</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%96%87%E6%91%98/">文摘</a></div><div class="post-share"><div class="social-share" data-image="/img/%E6%91%B8%E9%B1%BC.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2019/07/03/Abstract/qinghua/" title="情话是门失传的艺术"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">情话是门失传的艺术</div></div><div class="info-2"><div class="info-item-1">借林清玄《煮雪》等文字谈情话之美，感叹速食时代里缓慢而真诚的表达正在失传。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2019/07/15/Abstract/xunshan/" title="大王派我来巡山"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-07-15</div><div class="info-item-2">大王派我来巡山</div></div><div class="info-2"><div class="info-item-1">以“巡山”为题的随笔，借狮驼岭的典故写自我身份与“道具”式的荒诞感。</div></div></div></a><a class="pagination-related" href="/2019/12/29/Abstract/wintersongs/" title="冬天应该听的歌"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-12-29</div><div class="info-item-2">冬天应该听的歌</div></div><div class="info-2"><div class="info-item-1">推荐一份适合冬天听的歌单，逐首分享《冬至》《南方姑娘》《红豆》等歌曲背后的心情。</div></div></div></a><a class="pagination-related" href="/2019/07/15/Abstract/rain/" title="来日绮窗前，寒梅着花未"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-07-15</div><div class="info-item-2">来日绮窗前，寒梅着花未</div></div><div class="info-2"><div class="info-item-1">由新海诚《言叶之庭》里的雨写起，谈南方冬日雨天带来的感受与怀念。</div></div></div></a><a class="pagination-related" href="/2019/09/24/Abstract/radio1/" title="为什么我对电台这么的情有独钟。&lt;1&gt;"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-09-24</div><div class="info-item-2">为什么我对电台这么的情有独钟。&lt;1&gt;</div></div><div class="info-2"><div class="info-item-1">回忆童年乡村大喇叭、校园广播与网络电台，梳理自己与电台节目结缘的经过。</div></div></div></a><a class="pagination-related" href="/2019/07/03/Abstract/qinghua/" title="情话是门失传的艺术"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-07-03</div><div class="info-item-2">情话是门失传的艺术</div></div><div class="info-2"><div class="info-item-1">借林清玄《煮雪》等文字谈情话之美，感叹速食时代里缓慢而真诚的表达正在失传。</div></div></div></a><a class="pagination-related" href="/2019/11/05/Abstract/qiu-ye-yu/" title="秋，夜雨"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-11-05</div><div class="info-item-2">秋，夜雨</div></div><div class="info-2"><div class="info-item-1">记录深秋故乡连绵阴雨带来的清冷与愁绪，写雨声、青苔与归家的心情。</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/%E6%91%B8%E9%B1%BC.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">volin</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">10</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">Hello! 欢迎！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%A1%B9%E8%84%8A%E8%BD%A9%E5%BF%97"><span class="toc-number">1.</span> <span class="toc-text">项脊轩志</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/08/Curiosity/sichuan-shale-gas/" title="从一片古海洋到地下页岩气：零基础读懂四川盆地六亿年的故事">从一片古海洋到地下页岩气：零基础读懂四川盆地六亿年的故事</a><time datetime="2026-11-08T13:04:56.000Z" title="发表于 2026-11-08 21:04:56">2026-11-08</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/02/Technology/rustdesk-arch-kde-wayland-lock/" title="Arch Linux + KDE Plasma + Wayland：解决 RustDesk 远程桌面无法控制的问题，并实现开机自动锁屏">Arch Linux + KDE Plasma + Wayland：解决 RustDesk 远程桌面无法控制的问题，并实现开机自动锁屏</a><time datetime="2026-11-02T03:45:00.000Z" title="发表于 2026-11-02 11:45:00">2026-11-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/24/Technology/ts416-rk3568/" title="在 QNAP TS416（RK3568）上复用 QuMagie 容器的 NPU 运行自定义 RKNN 模型">在 QNAP TS416（RK3568）上复用 QuMagie 容器的 NPU 运行自定义 RKNN 模型</a><time datetime="2026-09-24T11:00:14.000Z" title="发表于 2026-09-24 19:00:14">2026-09-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/15/Technology/k3s-node-exporter/" title="实战复盘：k3s + containerd 真实 Pod 磁盘与日志物理用量精准监控指南">实战复盘：k3s + containerd 真实 Pod 磁盘与日志物理用量精准监控指南</a><time datetime="2026-09-15T13:27:18.000Z" title="发表于 2026-09-15 21:27:18">2026-09-15</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/12/Technology/overlarroot-os/" title="云原生底座选型：构建“不可变宿主机 + k3s + 外部持久化”的技术架构全景指南">云原生底座选型：构建“不可变宿主机 + k3s + 外部持久化”的技术架构全景指南</a><time datetime="2026-09-12T03:38:57.000Z" title="发表于 2026-09-12 11:38:57">2026-09-12</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"></div><div class="footer_custom_text"><div>本站内容版权所有 © 2019-2026 | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">蜀ICP备2023038623号</a></div>
+<div id="hitokoto-box" style="margin-top: 8px;">正在加载一言...</div>
+<script>
+  fetch('https://v1.hitokoto.cn/')
+    .then(response => response.json())
+    .then(data => {
+      const box = document.getElementById('hitokoto-box');
+      if (box) {
+        box.innerText = data.hitokoto + ' —— ' + (data.from_who ? data.from_who : data.from);
+      }
+    })
+    .catch(err => console.error('加载一言失败:', err));
+</script>
+</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.2"></script><script src="/js/main.js?v=5.7.2"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"></div><script data-pjax src="/js/subtitle-char-fade.js"></script><script data-pjax src="/js/ghibli-content.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"]):not([data-fancybox])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      if (!item.parentNode) return
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || ''
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    const responseURL = e.request && e.request.responseURL
+    if (e.request && e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : responseURL && (window.location.href = responseURL)
+    } else if (responseURL) {
+      window.location.href = responseURL
+    }
+  })
+})</script></div></body></html>
