@@ -1,19 +1,24 @@
 /**
- * 不蒜子访问统计：只在正式域名计数，兼容 Butterfly 的 data-pjax 重执行。
- * 预览、离线与超时显示占位，避免旧页面的迟到响应覆盖当前阅读量。
+ * Vercount 访问统计：显式提交页面地址，兼容 Butterfly 的 data-pjax 重执行。
+ * 仅正式域名计数；预览、离线与异常显示占位，迟到响应不会覆盖新页面。
  */
 (function () {
   'use strict'
 
   const STATE_KEY = '__volinVisitCounter'
   const PJAX_KEY = '__volinVisitCounterPjaxBound'
-  const ENDPOINT = 'https://busuanzi.ibruce.info/busuanzi?jsonpCallback='
+  const UV_KEY = '__volinVisitCounterUvSeen'
+  const UV_COOKIE = 'vercount_uv_www_volin_top'
+  const ENDPOINT = 'https://events.vercount.one/api/v2/log'
+  const CANONICAL_ORIGIN = 'https://www.volin.top'
   const REQUEST_TIMEOUT = 7000
-  const PLACEHOLDER = '—'
   const FIELDS = ['site_uv', 'site_pv', 'page_pv']
   const ALLOWED_HOSTS = new Set(['volin.top', 'www.volin.top'])
 
-  const currentPath = () => window.location.pathname
+  const currentPath = () => {
+    const path = window.location.pathname || '/'
+    return path.replace(/\/index\.html$/i, '/')
+  }
 
   const isAllowedPage = () => {
     const protocol = window.location.protocol
@@ -21,70 +26,76 @@
       ALLOWED_HOSTS.has(window.location.hostname.toLowerCase().replace(/\.$/, ''))
   }
 
-  const getElements = () => FIELDS.reduce((result, field) => {
-    result[field] = document.getElementById('busuanzi_value_' + field)
-    return result
-  }, {})
-
-  const writePlaceholders = () => {
-    const elements = getElements()
+  const display = (data, title) => {
     FIELDS.forEach(field => {
-      if (elements[field]) elements[field].textContent = PLACEHOLDER
+      const element = document.getElementById('busuanzi_value_' + field)
+      if (element) {
+        element.textContent = data ? String(data[field]) : '—'
+        element.title = title
+      }
     })
   }
 
-  const normalizeCount = value => {
-    if (typeof value !== 'number' && (typeof value !== 'string' || !/^\d+$/.test(value))) {
-      return PLACEHOLDER
-    }
-    const count = Number(value)
-    return Number.isSafeInteger(count) && count >= 0
-      ? String(count)
-      : PLACEHOLDER
-  }
-
-  const writeCounts = data => {
-    const elements = getElements()
-    FIELDS.forEach(field => {
-      if (elements[field]) elements[field].textContent = normalizeCount(data && data[field])
-    })
-  }
+  const validData = response => response && response.status === 'success' &&
+    response.data && FIELDS.every(field =>
+    Number.isSafeInteger(response.data[field]) && response.data[field] >= 0)
 
   if (window[STATE_KEY] && typeof window[STATE_KEY].cancel === 'function') {
     window[STATE_KEY].cancel()
   }
 
+  if (!isAllowedPage()) {
+    display(null, '本地或预览页面不计入访问统计')
+    return
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    display(null, '当前离线，访问统计暂不可用')
+    return
+  }
+  if (typeof window.fetch !== 'function' || typeof window.AbortController !== 'function') {
+    display(null, '当前浏览器不支持访问统计请求')
+    return
+  }
+
+  const uvState = window[UV_KEY] && typeof window[UV_KEY] === 'object'
+    ? window[UV_KEY]
+    : { confirmed: false, pending: null }
+  window[UV_KEY] = uvState
+
   const state = {
     path: currentPath(),
-    callbackName: '__volinVisitCounter_' + Date.now() + '_' + Math.random().toString(36).slice(2),
-    script: null,
+    controller: new window.AbortController(),
     timer: null,
     settled: false,
-    cleanup () {
-      if (state.timer) window.clearTimeout(state.timer)
-      if (state.script && state.script.parentNode) state.script.parentNode.removeChild(state.script)
-      delete window[state.callbackName]
+    isCurrent () {
+      return window[STATE_KEY] === state && state.path === currentPath()
     },
-    cancel () {
+    finish (data, title) {
       if (state.settled) return
       state.settled = true
-      state.cleanup()
-      if (window[STATE_KEY] === state) {
-        writePlaceholders()
-        window[STATE_KEY] = null
+      window.clearTimeout(state.timer)
+      if (uvState.pending === state) {
+        uvState.pending = null
+        if (data) {
+          uvState.confirmed = true
+          try {
+            document.cookie = UV_COOKIE + '=1; Path=/; Max-Age=31536000; SameSite=Lax; Secure; Domain=volin.top'
+          } catch (error) {
+            // Cookie 不可用时，成功记录的 UV 仍在当前标签页内去重。
+          }
+        }
       }
+      if (state.isCurrent()) display(data, title)
+      if (window[STATE_KEY] === state) window[STATE_KEY] = null
+    },
+    cancel (title) {
+      state.finish(null, title || '页面已切换，访问统计已取消')
+      state.controller.abort()
     }
   }
 
   window[STATE_KEY] = state
-  writePlaceholders()
-
-  if (!isAllowedPage() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-    state.settled = true
-    state.cleanup()
-    window[STATE_KEY] = null
-    return
-  }
+  display(null, '正在加载访问统计')
 
   if (!window[PJAX_KEY]) {
     document.addEventListener('pjax:send', () => {
@@ -95,24 +106,37 @@
     window[PJAX_KEY] = true
   }
 
-  window[state.callbackName] = data => {
-    if (state.settled || window[STATE_KEY] !== state) return
-    if (state.path !== currentPath()) {
-      state.cancel()
-      return
-    }
-    state.settled = true
-    state.cleanup()
-    writeCounts(data)
-    window[STATE_KEY] = null
+  let hasUvCookie = false
+  try {
+    hasUvCookie = document.cookie.split(';').some(part => part.trim() === UV_COOKIE + '=1')
+  } catch (error) {
+    // Cookie 不可用时，仍在当前标签页内去重。
   }
+  if (hasUvCookie) uvState.confirmed = true
+  const isNewUv = !uvState.confirmed && !uvState.pending
+  // pending 只属于本次请求；失败或取消会释放，成功后才写一年 Cookie。
+  if (isNewUv) uvState.pending = state
 
-  state.script = document.createElement('script')
-  state.script.async = true
-  // 原接口依靠 Referer 区分文章，须与官方脚本采用相同策略。
-  state.script.referrerPolicy = 'no-referrer-when-downgrade'
-  state.script.src = ENDPOINT + encodeURIComponent(state.callbackName)
-  state.script.onerror = () => state.cancel()
-  state.timer = window.setTimeout(() => state.cancel(), REQUEST_TIMEOUT)
-  document.head.appendChild(state.script)
+  state.timer = window.setTimeout(() => {
+    state.cancel('访问统计请求超时，请稍后再试')
+  }, REQUEST_TIMEOUT)
+
+  ;(async () => {
+    try {
+      const response = await window.fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        referrerPolicy: 'strict-origin-when-cross-origin',
+        body: JSON.stringify({ url: CANONICAL_ORIGIN + state.path, isNewUv }),
+        signal: state.controller.signal
+      })
+      if (!response.ok) throw new Error('HTTP ' + response.status)
+      const data = await response.json()
+      if (!validData(data)) throw new Error('Invalid counter response')
+      state.finish(data.data, '访问统计由 Vercount 提供')
+    } catch (error) {
+      state.finish(null, '访问统计服务暂不可用')
+    }
+  })()
 })()
