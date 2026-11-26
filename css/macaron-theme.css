@@ -60,8 +60,9 @@
   z-index: 3;
 }
 
-/* 主标题开关：只控制首页大标题，不控制副标题。
-   想显示主标题时，把下面两行的 display: none 删掉即可。
+/* 主标题开关：隐藏头图中的 #site-title（首页及归档/标签/分类/普通页面）。
+   不影响文章 .post-title、导航站点名或副标题。
+   恢复全部头图标题可删除本规则的 display: none；只恢复首页需拆分这两个选择器。
    副标题显示与否在 _config.butterfly.yml 的 subtitle.enable 中控制。 */
 #page-header.full_page #site-title,
 #page-header #site-title {
