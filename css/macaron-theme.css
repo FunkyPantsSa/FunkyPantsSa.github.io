@@ -6,6 +6,15 @@
    3. 不规则光晕染 + 头图波浪过渡 + 柔交互
    ========================================================= */
 
+/* 阿里妈妈方圆体 © 阿里妈妈：原版字体本地加载，许可见 /fonts/LICENSE-Alimama-FangYuanTi.txt。 */
+@font-face {
+  font-family: 'Alimama FangYuan';
+  src: url('/fonts/AlimamaFangYuanTiVF.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ---------------------------------------------------------
    一、首页头图英雄区：居中文案
    --------------------------------------------------------- */
@@ -91,6 +100,7 @@
    二、主题变量与全站背景
    --------------------------------------------------------- */
 :root {
+  --site-display-font: 'Alimama FangYuan', 'Hiragino Maru Gothic ProN', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --macaron-pink: #e8a090;
   --macaron-peach: #efc49a;
   --macaron-yellow: #f3e2b0;
@@ -229,12 +239,13 @@ body {
 
 #page-header #nav #site-name,
 #page-header #nav .site-name {
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
-  font-size: 1.55rem !important;
-  font-weight: 400 !important;
+  font-family: var(--site-display-font) !important;
+  font-variation-settings: 'BEVL' 100;
+  font-size: clamp(1.1rem, 2vw, 1.35rem) !important;
+  font-weight: 500 !important;
   font-synthesis: none !important;
-  letter-spacing: 0.06em;
-  line-height: 1 !important;
+  letter-spacing: 0.04em;
+  line-height: 1.4 !important;
   display: inline-flex !important;
   align-items: center !important;
   margin: 0 !important;
@@ -279,11 +290,12 @@ body {
 #page-header #nav #search-button .site-page,
 #page-header #nav #toggle-menu .site-page,
 #page-header #nav .menus_item_child li a {
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
-  font-size: 1.05rem !important;
-  font-weight: 400 !important;
+  font-family: var(--site-display-font) !important;
+  font-variation-settings: 'BEVL' 100;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
   font-synthesis: none !important;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.025em;
 }
 
 #page-header #nav .site-page:not(.child)::after {
@@ -297,6 +309,11 @@ body {
   align-items: center !important;
   justify-content: flex-end !important;
   order: 1;
+}
+
+/* 遵循主题的折叠菜单状态，避免窄屏导航挤到站点标题旁。 */
+#page-header #nav.hide-menu #menus .menus_items {
+  display: none !important;
 }
 
 #page-header #nav #menus .menus_item {
@@ -322,7 +339,7 @@ body {
 #site-subtitle,
 #site-subtitle #subtitle,
 #site-subtitle #subtitle .subtitle-char {
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
+  font-family: var(--site-display-font) !important;
   font-weight: 400 !important;
   font-style: normal !important;
   font-synthesis: none !important;
@@ -1092,7 +1109,7 @@ body {
   box-shadow: none !important;
   border-radius: 8px !important;
   color: #6b5344 !important;
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
+  font-family: var(--site-display-font) !important;
   font-size: 1.28rem !important;
   font-weight: 400 !important;
   font-synthesis: none !important;
@@ -1450,10 +1467,11 @@ body {
   flex: 1 1 auto !important;
   margin: 0 !important;
   text-align: left !important;
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
-  font-weight: 400 !important;
+  font-family: var(--site-display-font) !important;
+  font-variation-settings: 'BEVL' 100;
+  font-weight: 500 !important;
   font-synthesis: none !important;
-  font-size: 1.48rem !important;
+  font-size: 1.2rem !important;
   color: #6b5344 !important;
   line-height: 1.25 !important;
   letter-spacing: 0.04em;
@@ -1524,7 +1542,7 @@ body {
 #aside-content .card-info .site-data > a .length-num {
   margin: 0 !important;
   color: #a56b58 !important;
-  font-family: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', cursive !important;
+  font-family: var(--site-display-font) !important;
   font-size: 1.45rem !important;
   font-weight: 400 !important;
   font-synthesis: none !important;
